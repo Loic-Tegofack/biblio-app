@@ -5,8 +5,8 @@ from controleurBiblio import Book_Manager,Author_Manager
 root=tk.Tk()
 root.title("BIBLIO 1.0")
 root.geometry("700x500")
-livres=Book_Manager("test01.db")
-Auteur=Author_Manager("test01.db")
+livres=Book_Manager("pop.db")
+Auteur=Author_Manager("pop.db")
 
 
 class GUI:
@@ -18,9 +18,9 @@ class GUI:
 
         self.creer_tableau()
 
-        self.creer_menu()
-
         self.afficher_livre()
+
+        self.creer_menu()   
 
     def formulaire_ajout_livre(self):
 
@@ -174,11 +174,11 @@ class GUI:
         #on creer le menu
         self.menu=tk.Menu(root,tearoff=0)
 
-        self.menu.add_command(label="Afficher Details",command=self.afficher_detail_menu(mode=False))
+        self.menu.add_command(label="Afficher Details",command=self.afficher_detail_menu)
 
         self.menu.add_separator()
         
-        self.menu.add_command(label="Modifier un Livre",command=self.afficher_detail_menu(mode=True))
+        self.menu.add_command(label="Modifier un Livre",command=self.details_modification)
 
         self.menu.add_separator()
 
@@ -201,7 +201,14 @@ class GUI:
             return
         id=selection[0]
         id_livre=self.tableau.item(id,"tags")[0]
-        self.afficher_details(livre_id=int(id_livre))
+        self.afficher_details(livre_id=int(id_livre),mode=False)
+    def details_modification(self):
+        selection=self.tableau.selection()
+        if not selection:
+            return
+        id=selection[0]
+        id_livre=self.tableau.item(id,"tags")[0]
+        self.afficher_details(livre_id=int(id_livre),mode=True)
     
     def supprimer_livre(self):
         selection=self.tableau.selection()
@@ -242,6 +249,7 @@ class GUI:
         self.tableau.heading("auteur",text="Auteur")
         self.tableau.heading("titre",text="Titre")
         self.tableau.heading("genre",text="Genre")
+
         self.tableau.heading("etat",text="Etat")
 
         self.tableau.column("auteur",width=120)
@@ -258,6 +266,8 @@ class GUI:
         for item in self.tableau.get_children():
             self.tableau.delete(item)
         Livres=livres.afficher_livre()
+        print(f"Nombre de livres récupérés : {len(Livres)}")  # ← DEBUG
+        print(f"Livres : {Livres}")  # ← DEBUG
 
         for livre in Livres :
             self.tableau.insert("","end",values=(livre[1],livre[2],livre[4],livre[5]),tags=(livre[0],))
@@ -270,13 +280,12 @@ class GUI:
             if not selection:
                 return
             item=selection[0] #si plusieur lignes selectionnees,on recupere l'id de la premiere ligne 
-            self.livre_id=livre_id
-            self.livre_id=self.tableau.item(item,"tags")[0]# on recupere l'id cache du/des livre(s) 
+            livre_id=self.tableau.item(item,"tags")[0]# on recupere l'id cache du/des livre(s) 
 
         if livre_id is None:
             return
           
-        self.id=int(self.livre_id)
+        self.id=int(livre_id)
         info_livres=livres.recherche_par_id(self.id)
 
         self.details=tk.Toplevel(root)
