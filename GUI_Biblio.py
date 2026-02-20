@@ -6,10 +6,10 @@ root=tk.Tk()
 root.title("BIBLIO 1.0")
 root.geometry("700x500")
 livres=Book_Manager("test01.db")
-Auteur=Author_Manager("test01.db")
+auteur=Author_Manager("test01.db")
 
 
-class GUI:
+class Livres:
     def __init__(self):
 
         self.ajout=None
@@ -97,7 +97,7 @@ class GUI:
                 messagebox.showwarning("Attention!","l'annee de naissance de l'auteur doit etre un nombre positif !",parent=self.auteur)
                 return 
             try:
-              Auteur.get_or_create_auteur(nom,date_auteur_int,pays)
+              auteur.get_or_create_auteur(nom,date_auteur_int,pays)
               resultat=True
               self.auteur.destroy()
             except Exception as e:
@@ -136,7 +136,7 @@ class GUI:
             messagebox.showwarning("Incoherence donnee!","le nombre d'exemplaire du livre doit etre un nombre positif !")
             return
         
-        if Auteur.recherche(nom) is None :
+        if auteur.rechercher_auteur(nom) is None :
             reponse=messagebox.askyesno("Auteur Inconnu !",f"{nom} n'est pas enregistrer !, souhaitez-vous l'ajouter ?")
             if reponse:
                 if self.ajout_auteur(nom) is None:
@@ -239,10 +239,10 @@ class GUI:
 
     def rechercher_un_livre(self):
         conteneur=tk.Frame(root)
-        conteneur.pack()
+        conteneur.pack(side="top",fill="x",expand=True,padx=25,pady=25)
 
         self.cherche=tk.Entry(conteneur)
-        self.cherche.pack(side="right",fill="x",expand=True)
+        self.cherche.pack(side="right",fill="x")
 
         def afficher_recherche():
             result=self.cherche.get().strip()
@@ -266,9 +266,7 @@ class GUI:
             self.cherche.delete(0,tk.END)
             
 
-        tk.Button(conteneur,text="Chercher",command=afficher_recherche).pack(side="left",fill="x",expand=True,padx=5,pady=5)
-        
-        
+        tk.Button(conteneur,text="Chercher",command=afficher_recherche).pack(side="right",fill="x",padx=5,pady=5)     
                         
 
     def creer_tableau(self):
@@ -277,6 +275,7 @@ class GUI:
 
         colonne=("auteur","titre","genre","etat")
         self.tableau=ttk.Treeview(conteneur,columns=colonne,show="headings")
+
         self.tableau.bind("<Double-1>",self.afficher_details)
 
         scroll=tk.Scrollbar(conteneur,orient="vertical",command=self.tableau.yview)
@@ -285,7 +284,6 @@ class GUI:
         self.tableau.heading("auteur",text="Auteur")
         self.tableau.heading("titre",text="Titre")
         self.tableau.heading("genre",text="Genre")
-
         self.tableau.heading("etat",text="Etat")
 
         self.tableau.column("auteur",width=120)
@@ -437,8 +435,131 @@ class GUI:
         for champ in self.saisi:
             champ.config(state="readonly")
 
+class Auteur:
+    def __init__ (self):
+        self.ajout()
+        self.table_auteur()
+        self.affichage_auteur()
+        self.menu_contextuelle_auteur()
+    def table_auteur(self):
+        conteneur=tk.Frame(root)
+        conteneur.pack(fill="x",expand=True,anchor="s")
+      
+        colonne=("nom","date","pays")
+        self.table=ttk.Treeview(conteneur,columns=colonne,show="headings")
+        scroll=tk.Scrollbar(conteneur,orient="vertical",command=self.table.yview)
+        self.table.config(yscrollcommand=scroll.set)
 
-app =GUI()
+        self.table.heading("nom",text="Nom")
+        self.table.heading("date",text="Date_Naissance")
+        self.table.heading("pays",text="Nationalite")
 
+        self.table.pack(fill="both",expand=True)
+        scroll.pack(fill="y",side="right")
+    
+    def affichage_auteur(self):
+        for item in self.table.get_children():
+            self.table.delete(item)
+        author=auteur.afficher_auteur()
+        for ecrivain in author:
+            self.table.insert("","end",values=(ecrivain[1],ecrivain[2],ecrivain[3]),tags=(ecrivain[0],))
+    
+    def ajouter_auteur(self):
+       self.conteneur=tk.Frame(root)
+       self.conteneur.pack()
+       self.conteneur.grab_set()
+       self.bt.config(state="disabled")
+       
+       tk.Label(self.conteneur,text="Auteur").grid(row=0,column=0,padx=10)
+       self.author=tk.Entry(self.conteneur)
+       self.author.grid(row=0,column=1)
+
+       tk.Label(self.conteneur,text="Date Naissance:").grid(row=1,column=0)
+       self.date_auteur=tk.Entry(self.conteneur)
+       self.date_auteur.grid(row=1,column=1)
+
+       tk.Label(self.conteneur,text="Pays").grid(row=2,column=0)
+       self.auteur_pays=tk.Entry(self.conteneur)
+       self.auteur_pays.grid(row=2,column=1)
+
+       def validation_auteur():
+            nom=self.author.get().strip()
+            date=self.date_auteur.get().strip()
+            pays=self.auteur_pays.get().strip()
+
+            date_auteur_int=0
+            if not all([nom,date,pays]):
+                messagebox.showwarning("Champs Vide !","Un ou plusieurs champs sont vide,veuillez,les remplis")
+                return
+
+            if date.isdigit() :
+                date_auteur_int=int(date) 
+            else:
+                messagebox.showwarning("Attention!","l'annee de naissance de l'auteur doit etre un nombre positif !")
+                return 
+            author=auteur.rechercher_auteur(nom)
+            if author:
+                messagebox.showwarning("Redondance !",f"cet auteur existe deja : \n\n"
+                                                         f"Nom:{author[0]}\n"
+                                                         f"Date_Naissance:{author[1]}\n"
+                                                         f"Pays:{author[2]}")
+                return
+            try:
+              auteur.get_or_create_auteur(nom,date_auteur_int,pays)
+              messagebox.showinfo("Succes",f"l'auteur {nom} a ete ajouter avec succes !")
+              self.author.delete(0,tk.END)
+              self.date_auteur.delete(0,tk.END)
+              self.auteur_pays.delete(0,tk.END)
+            except Exception as e:
+                messagebox.showerror("Erreur !",f"{e}")
+
+       tk.Button(self.conteneur,text="Ajouter",command=validation_auteur).grid(row=3, column=0, pady=12)
+       tk.Button(self.conteneur,text="Annuler",command=self.fermer_ajout).grid(row=3, column=1, pady=12)
+    
+    def ajout(self):
+        self.bt=tk.Button(root,text="Ajouter",command=self.ajouter_auteur)
+        self.bt.pack()
+    def fermer_ajout(self):
+        self.bt.configure(state="active")
+        self.conteneur.destroy()
+
+    def menu_contextuelle_auteur(self):
+        self.menu=tk.Menu(root,tearoff=0)
+        self.menu.add_command(labe="Supprimer",command=self.supprimer_auteur)
+
+        self.table.bind("<Button-3>",self.afficher_menu)
+    
+    def afficher_menu(self,event):
+        ligne=self.table.identify_row(event.y)
+        
+        if ligne:
+            self.table.selection_set(ligne)
+            self.menu.post(event.x_root,event.y_root)
+    
+    def supprimer_auteur(self):
+        ligne=self.table.selection()
+
+        if not ligne:
+            return
+    
+        id=ligne[0]
+        id_auteur= self.table.item(id,"tags")[0]
+        infos_auteur=auteur.recherche_auteur_par_id(int(id_auteur))
+        question=messagebox.askyesno("suppression ...",f"Supprimer cet auteur ? \n\n" 
+                            f"Nom: {infos_auteur[0]} \n"
+                            f"Date_Naissance:{infos_auteur[1]}\n"
+                            f"pays:{infos_auteur[2]}\n\n"
+                            f"Cette action est Irreversible !")
+        if not question:
+            return
+        try:
+            auteur.supprimer_auteur(infos_auteur[0])
+            messagebox.showinfo("infos",f"l'auteur {infos_auteur[0]} a bien ete supprimer")
+            self.affichage_auteur()
+        except Exception as e:
+                messagebox.showerror("erreur",str(e))
+
+
+auteurs=Auteur()
 
 root.mainloop()
