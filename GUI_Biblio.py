@@ -5,14 +5,16 @@ from controleurBiblio import Book_Manager,Author_Manager
 root=tk.Tk()
 root.title("BIBLIO 1.0")
 root.geometry("700x500")
-livres=Book_Manager("pop.db")
-Auteur=Author_Manager("pop.db")
+livres=Book_Manager("test01.db")
+Auteur=Author_Manager("test01.db")
 
 
 class GUI:
     def __init__(self):
 
         self.ajout=None
+
+        self.rechercher_un_livre()
    
         self.afficher_formulaire()
 
@@ -20,7 +22,9 @@ class GUI:
 
         self.afficher_livre()
 
-        self.creer_menu()   
+        self.creer_menu()  
+
+         
 
     def formulaire_ajout_livre(self):
 
@@ -232,6 +236,38 @@ class GUI:
             self.afficher_livre()
         except Exception as e:
                 messagebox.showerror("erreur",str(e))
+
+    def rechercher_un_livre(self):
+        conteneur=tk.Frame(root)
+        conteneur.pack()
+
+        self.cherche=tk.Entry(conteneur)
+        self.cherche.pack(side="right",fill="x",expand=True)
+
+        def afficher_recherche():
+            result=self.cherche.get().strip()
+            if not result:
+                messagebox.showinfo("champs vide !","Veuillez saisir le titre du livre Rechercher !")
+                return
+            livre= livres.rechercher(result)
+            if not  livre:
+                messagebox.showinfo("info",f"le livre {result} n'est pas enregistrer !")
+                self.cherche.delete(0,tk.END)
+                return
+            for item in self.tableau.get_children():
+                self.tableau.delete(item)
+
+            id_book=livres.book_id(result)
+            
+            self.tableau.insert("","end",values=(livre[0],livre[1],livre[3],livre[4]),tags=(id_book))
+
+            self.afficher_details()
+
+            self.cherche.delete(0,tk.END)
+            
+
+        tk.Button(conteneur,text="Chercher",command=afficher_recherche).pack(side="left",fill="x",expand=True,padx=5,pady=5)
+        
         
                         
 
@@ -266,8 +302,8 @@ class GUI:
         for item in self.tableau.get_children():
             self.tableau.delete(item)
         Livres=livres.afficher_livre()
-        print(f"Nombre de livres récupérés : {len(Livres)}")  # ← DEBUG
-        print(f"Livres : {Livres}")  # ← DEBUG
+        #print(f"Nombre de livres récupérés : {len(Livres)}")  # ← DEBUG
+        #print(f"Livres : {Livres}")  # ← DEBUG
 
         for livre in Livres :
             self.tableau.insert("","end",values=(livre[1],livre[2],livre[4],livre[5]),tags=(livre[0],))
