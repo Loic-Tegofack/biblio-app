@@ -6,7 +6,7 @@ class Author_Manager: #Il faudrai une fonction de modification au cas ou les don
         self.bd=bd
         self.auteur=Auteur(self.bd)
         
-   #Ici on verifie si l'auteur existe deja sinon on le creer et on renvoie son identifiant
+   #Ici on verifie si l'auteur existe deja sinon on le creer et on renvoie ses informations
     def get_or_create_auteur(self,nom,naissance,pays): 
         nd=None 
         if not nom or not nom.strip():   
@@ -22,17 +22,47 @@ class Author_Manager: #Il faudrai une fonction de modification au cas ou les don
         if id_auteur is None:
           return self.auteur.new_author(nom,nd,pays)
         else:
-            return self.auteur.display_author(id_auteur)
+            return self.auteur.author(id_auteur)
     
-    def recherche(self,nom):
+    def retourne_id_auteur(self,nom):
         if not nom  or not nom.strip():
             raise ValueError("Veuillez renseigner le nom de l'auteur")
         author=self.auteur.search_auteur(nom)
         if author is None:
             return None
         return author
-            
     
+    def rechercher_auteur(self,nom):
+        if not nom  or not nom.strip():
+            raise ValueError("Veuillez renseigner le nom de l'auteur")
+        id=self.auteur.search_auteur(nom)
+        if id is None:
+            return None
+        infos=self.auteur.author(id)
+        return infos if infos else None
+
+    def supprimer_auteur(self,nom):
+        if not nom or not nom.strip():
+            raise ValueError("Veuillez renseigner le nom de l'auteur")
+        id_auteur=self.auteur.search_auteur(nom)
+        if not id_auteur:
+            raise ValueError("Auteur Inexistant !")
+        nbre_livre=self.auteur.a_au_moins_un_livre(id_auteur)
+        if nbre_livre:
+            raise ValueError("Cet auteur ne peut etre supprimer\n car il a ecrit au moins un livre !")
+        self.auteur.delete_author(id_auteur)
+        return True
+    
+    def afficher_auteur(self):
+        auteurs=self.auteur.display_author()
+        return auteurs
+    def recherche_auteur_par_id(self,id):
+        if not id:
+            return None
+        infos=self.auteur.author(id)
+        return infos if infos else None
+
+
 
 #Fonctions de Gestion Des livres
    
@@ -138,7 +168,7 @@ class Book_Manager:
         return resultat
     def book_id(self,titre):
         return self.livre.get_id_book(titre)
-        
+    
         
 
 #Fonctions de Gestions des utilisateur
