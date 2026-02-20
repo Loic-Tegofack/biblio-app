@@ -36,7 +36,7 @@ class Auteur:
         return id_e
        
         #Affiche les infos d'un auteur selectionne
-    def display_author(self,id_auteur):
+    def author(self,id_auteur):
         con,curseur=self.bd.open_connexion()
         result=None
         try:
@@ -50,6 +50,51 @@ class Auteur:
         finally:
             self.bd.close_connexion(con)
         return result
+    
+    def display_author(self):
+        con,curseur=self.bd.open_connexion()
+        result=None
+        try:
+            with con:
+                curseur.execute(
+                    """
+                     SELECT id,nom, date_naissance, nationalite  FROM Auteur 
+                    """
+                )
+                result=curseur.fetchall()
+        finally:
+            self.bd.close_connexion(con)
+        return result
+
+    
+    def delete_author(self,id):
+        con,curseur=self.bd.open_connexion()
+        try:
+            with con:
+                curseur.execute(
+                    """
+                     DELETE FROM Auteur WHERE id=?
+                    """,(id,)
+                )
+        finally:
+            self.bd.close_connexion(con)
+        return True
+    def a_au_moins_un_livre(self,id):
+        con,curseur=self.bd.open_connexion()
+        nbre=None
+        try:
+            with con:
+                curseur.execute(
+                    """
+                     SELECT COUNT(Livre.id) FROM Livre INNER JOIN Auteur ON Livre.auteur_id=Auteur.id WHERE Auteur.id=?
+                    """,(id,)
+                )
+                nbre=curseur.fetchone()
+        finally:
+            self.bd.close_connexion(con)
+        return nbre[0] if nbre else None
+
+
 
   
 #Fonctions de Gestions de la table Livre
