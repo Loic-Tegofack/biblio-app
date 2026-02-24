@@ -3,14 +3,34 @@ from tkinter import ttk,messagebox
 from controleurBiblio import Book_Manager,Author_Manager
 
 root=tk.Tk()
-root.title("BIBLIO 1.0")
-root.geometry("700x500")
+
 livres=Book_Manager("test01.db")
 auteur=Author_Manager("test01.db")
 
 
-class Livres:
-    def __init__(self):
+class GUI:
+    def __init__(self,root):
+        
+        self.root=root
+        self.root.title("BIBLIO 1.0")
+        self.root.geometry("900x700")
+        
+        self.notebook=ttk.Notebook(self.root)
+        self.notebook.pack(fill="both",expand=True,padx=10,pady=10)
+
+        self.onglet_livre=tk.Frame(self.notebook)
+        self.onglet_auteur=tk.Frame(self.notebook)
+
+        self.notebook.add(self.onglet_livre,text="Gestion des Livres")
+        self.notebook.add(self.onglet_auteur,text="Gestion des Auteurs")
+
+        self.gui_livre=Livres_GUI(self.onglet_livre)
+        self.gui_auteur=Auteur_GUI(self.onglet_auteur)
+
+class Livres_GUI:
+    def __init__(self,parent):
+
+        self.parent=parent
 
         self.ajout=None
 
@@ -24,11 +44,9 @@ class Livres:
 
         self.creer_menu()  
 
-         
-
     def formulaire_ajout_livre(self):
 
-       self.ajout=tk.Frame(root)
+       self.ajout=tk.Frame(self.parent)
        self.ajout.pack()
        self.ajout.grab_set()
        self.ajouter_btn.config(state="disabled")#desactive le bouton une fois qu'on a cliquer
@@ -163,7 +181,7 @@ class Livres:
               champ.delete(0,tk.END)
 
     def afficher_formulaire(self):
-        self.ajouter_btn=tk.Button(root,text="Ajouter Un Livre",command=self.formulaire_ajout_livre)
+        self.ajouter_btn=tk.Button(self.parent,text="Ajouter Un Livre",command=self.formulaire_ajout_livre)
         self.ajouter_btn.pack()
     def fermer_formulaire(self):
         if self.ajout is not None :
@@ -176,7 +194,7 @@ class Livres:
      
     def creer_menu(self):
         #on creer le menu
-        self.menu=tk.Menu(root,tearoff=0)
+        self.menu=tk.Menu(self.parent,tearoff=0)
 
         self.menu.add_command(label="Afficher Details",command=self.afficher_detail_menu)
 
@@ -238,7 +256,7 @@ class Livres:
                 messagebox.showerror("erreur",str(e))
 
     def rechercher_un_livre(self):
-        conteneur=tk.Frame(root)
+        conteneur=tk.Frame(self.parent)
         conteneur.pack(side="top",fill="x",expand=True,padx=25,pady=25)
 
         self.cherche=tk.Entry(conteneur)
@@ -267,10 +285,12 @@ class Livres:
             
 
         tk.Button(conteneur,text="Chercher",command=afficher_recherche).pack(side="right",fill="x",padx=5,pady=5)     
+        
+        tk.Button(conteneur,text="Afficher Tous",command=self.afficher_livre).pack(side="right",fill="x",padx=10,pady=10) 
                         
 
     def creer_tableau(self):
-        conteneur=tk.Frame(root)
+        conteneur=tk.Frame(self.parent)
         conteneur.pack(fill="both",expand=True,anchor="s")
 
         colonne=("auteur","titre","genre","etat")
@@ -322,7 +342,7 @@ class Livres:
         self.id=int(livre_id)
         info_livres=livres.recherche_par_id(self.id)
 
-        self.details=tk.Toplevel(root)
+        self.details=tk.Toplevel(self.parent)
         self.details.title(f"Details :{info_livres[1]}")
         self.details.geometry("550x200")
         self.details.grab_set()
@@ -435,14 +455,15 @@ class Livres:
         for champ in self.saisi:
             champ.config(state="readonly")
 
-class Auteur:
-    def __init__ (self):
+class Auteur_GUI:
+    def __init__ (self,parent):
+        self.parent=parent
         self.ajout()
         self.table_auteur()
         self.affichage_auteur()
         self.menu_contextuelle_auteur()
     def table_auteur(self):
-        conteneur=tk.Frame(root)
+        conteneur=tk.Frame(self.parent)
         conteneur.pack(fill="x",expand=True,anchor="s")
       
         colonne=("nom","date","pays")
@@ -465,9 +486,8 @@ class Auteur:
             self.table.insert("","end",values=(ecrivain[1],ecrivain[2],ecrivain[3]),tags=(ecrivain[0],))
     
     def ajouter_auteur(self):
-       self.conteneur=tk.Frame(root)
+       self.conteneur=tk.Frame(self.parent)
        self.conteneur.pack()
-       self.conteneur.grab_set()
        self.bt.config(state="disabled")
        
        tk.Label(self.conteneur,text="Auteur").grid(row=0,column=0,padx=10)
@@ -504,9 +524,11 @@ class Auteur:
                                                          f"Date_Naissance:{author[1]}\n"
                                                          f"Pays:{author[2]}")
                 return
+            
             try:
               auteur.get_or_create_auteur(nom,date_auteur_int,pays)
               messagebox.showinfo("Succes",f"l'auteur {nom} a ete ajouter avec succes !")
+              self.affichage_auteur()
               self.author.delete(0,tk.END)
               self.date_auteur.delete(0,tk.END)
               self.auteur_pays.delete(0,tk.END)
@@ -517,17 +539,21 @@ class Auteur:
        tk.Button(self.conteneur,text="Annuler",command=self.fermer_ajout).grid(row=3, column=1, pady=12)
     
     def ajout(self):
-        self.bt=tk.Button(root,text="Ajouter",command=self.ajouter_auteur)
+        self.bt=tk.Button(self.parent,text="Ajouter",command=self.ajouter_auteur)
         self.bt.pack()
     def fermer_ajout(self):
         self.bt.configure(state="active")
         self.conteneur.destroy()
 
     def menu_contextuelle_auteur(self):
-        self.menu=tk.Menu(root,tearoff=0)
-        self.menu.add_command(labe="Supprimer",command=self.supprimer_auteur)
+        self.menu=tk.Menu(self.parent,tearoff=0)
+        self.menu.add_command(label="Supprimer",command=self.supprimer_auteur)
 
         self.table.bind("<Button-3>",self.afficher_menu)
+
+# A FAIRE : AFFICHER AU DOUBLE-CLIC->NOM_AUTEUR+NBRE_LIVRE+LISTE_LIVRE_ECRIT
+#IMPLEMENTER LE MODIFICATION DE AUTEUR
+#MODIFIER LA STRUCTURE DE BD AUTEUR POUR ACCEPTER NOM ET PRENOM
     
     def afficher_menu(self,event):
         ligne=self.table.identify_row(event.y)
@@ -560,6 +586,6 @@ class Auteur:
                 messagebox.showerror("erreur",str(e))
 
 
-auteurs=Auteur()
+interface=GUI(root)
 
 root.mainloop()
