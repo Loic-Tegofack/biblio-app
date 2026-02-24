@@ -200,7 +200,8 @@ class Livre:
             with con:
                 curseur.execute(
                     """
-                    SELECT Auteur.nom,titre,date,genre,etat, nbre_exemplaire FROM Livre INNER JOIN Auteur ON Auteur.id=auteur_id WHERE Livre.id=?
+                    SELECT Auteur.nom,titre,date,genre,etat, nbre_exemplaire 
+                    FROM Livre INNER JOIN Auteur ON Auteur.id=auteur_id WHERE Livre.id=?
                     """,(id_book,)
                 )
                 trouver = curseur.fetchone()
@@ -223,14 +224,14 @@ class Utilisateurs:
     def __init__(self,bd):
         self.bd=Database(bd)
               #ajout d'un utilisateur
-    def create_user(self,nom,prenom,adresse,status,mdp):
+    def create_user(self,nom,prenom,adresse,mdp):
         con,curseur=self.bd.open_connexion()
         try:
             with con:
                 curseur.execute(
                     """
-                    INSERT INTO Utilisateur (nom,prenom,adresse,status,mdp) VALUES (?,?,?,?,?)
-                    """,(nom,prenom,adresse,status,mdp)
+                    INSERT INTO Utilisateur (nom,prenom,adresse,mdp) VALUES (?,?,?,?)
+                    """,(nom,prenom,adresse,mdp)
                 )
         finally:
             self.bd.close_connexion(con)
@@ -294,6 +295,139 @@ class Utilisateurs:
                 )
         finally:
             self.bd.close_connexion(con)
-        
 
+class EMPRUNT:
+    def __init__(self,bd):
+        self.bd=Database(bd)
+    
+    def afficher_emprunts(self):
+        con,curseur=self.bd.open_connexion()
+        try:
+            with con:
+                curseur.execute(
+                    """
+                    SELECT Utilisateur.nom,Livre.titre,Emprunt.date_emprunt, Emprunt.date_retour_effective,Emprunt.date_retour_prevue 
+                    FROM Emprunt INNER JOIN Utilisateur ON Utilisateur.id=Emprunt.utilisateur_id
+                    INNER JOIN Livre ON Livre.id = Emprunt.livre_id
+            
+                    """
+                )
+                result=curseur.fetchall()
+        finally:
+            self.bd.close_connexion(con)
+            return result
+
+    def nbre_livre_emprunter_Par_un_utilisateur(self,id):
+        con,curseur=self.bd.open_connexion()
+        try:
+            with con:
+                curseur.execute(
+                    """
+                     SELECT COUNT(E.livre_id) FROM Emprunt as E
+                     WHERE E.utilisateur_id = ? AND E.date_retour_effective IS NULL
+            
+                    """,(id,)
+                )
+                result=curseur.fetchone()
+        finally:
+            self.bd.close_connexion(con)
+            return result[0] 
+        
+    def emprunts_utilisateur(self,id):
+        con,curseur=self.bd.open_connexion()
+        try:
+            with con:
+                curseur.execute(
+                    """
+                     SELECT L.titre FROM Emprunt as E
+                     INNER JOIN Livre as L ON L.id=E.livre_id
+                     WHERE E.utilisateur_id = ?
+            
+                    """,(id,)
+                )
+                result=curseur.fetchall()
+        finally:
+            self.bd.close_connexion(con)
+            return [ligne[0] for ligne in result]
+    
+    def ajouter_emprunt(self,id_user,id_book,current_date,borrow_return):
+        con,curseur=self.bd.open_connexion()
+        try:
+            with con:
+                curseur.execute(
+                    """
+                     INSERT INTO Emprunt (livre_id,utilisateur_id, date_emprunt,date_retour_effective,date_retour_prevue)
+                     VALUES (?,?,?,?,?)
+            
+                    """,(id_book,id_user,current_date,None,borrow_return)
+                )
+#mise a jour de la table Livre si le livre est emprunte
+                curseur.execute(
+                    """
+                     UPDATE Livre SET nbre_exemplaire  = nbre_exemplaire - 1 WHERE Livre.id = ? AND nbre_exemplaire > 0
+                    """,(id_book,)
+                )
+                
+        finally:
+            self.bd.close_connexion(con)
+    
+    def livre_empruntable(self,id_book):
+        con,curseur=self.bd.open_connexion()
+        try:
+            with con:
+                curseur.execute(
+                    """
+                     SELECT 1 FROM Emprunt
+                     WHERE Emprunt.livre_id=? AND Emprunt.date_retour_effective IS  NULL LIMIT 1
+            
+                    """,(id_book,)
+                )
+                result=curseur.fetchone()
+                
+        finally:
+            self.bd.close_connexion(con)
+            return result[0]
+    
+    def valider_retour(self,id_book,id_user):
+        con,curseur=self.bd.open_connexion()
+        try:
+            with con:
+#On calcul le retard a la remise du livre, si retard > 0 , alors livre remis en retard sinon remis en avance
+                curseur.execute(
+                    """
+                    SELECT JULIANDAY ('now') - JULIANDAY( date_retour_prevue )
+                    FROM Emprunt WHERE date_retour_effective IS NULL AND livre_id = ?  AND utilisateur_id = ?
+                    """,(id_book,id_user)
+                )
+                result=curseur.fetchone()
+
+                retard = result[0] if result else None
+#on met a jour la table d'emprunt apres un retour valider, si la requete est execute alors nbre_modif renvoie le nombre de ligne modifier
+#sinon il renvoi 0 et alors on conclu que ce livre n'a pas ete emprunter
+                curseur.execute(
+                    """
+                       UPDATE Emprunt SET date_retour_effective = date('now')
+                       WHERE livre_id = ? AND utilisateur_id = ?  AND date_retour_effective IS NULL
+                    """,(id_book,id_user)
+                )
+                nbre_modif=curseur.rowcount
+
+                if nbre_modif > 0:
+                
+                    curseur.execute(
+                        """
+                        UPDATE Livre SET   nbre_exemplaire =   nbre_exemplaire + 1 WHERE Livre.id = ?
+                        """ ,(id_book,)
+                    )
+
+                return nbre_modif,retard
+                
+        finally:
+            self.bd.close_connexion(con)
+            
+
+    
+
+
+        
     
