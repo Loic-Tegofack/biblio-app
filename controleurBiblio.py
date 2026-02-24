@@ -1,4 +1,6 @@
-from script_sql_biblio import Auteur,Livre,Utilisateurs
+from script_sql_biblio import Auteur,Livre,Utilisateurs,EMPRUNT
+from datetime import date,timedelta
+import hashlib
 #Fonctions de Gestion Des auteurs
 
 class Author_Manager: #Il faudrai une fonction de modification au cas ou les donnees aurait ete mal saisi
@@ -71,7 +73,6 @@ class Book_Manager:
         self.bd=bd
         self.livre=Livre(self.bd)
         self.auteur=Author_Manager(self.bd)
-        self.id_auteur=Auteur(self.bd)
      #Ajout d'un Livre
     def ajouter_livre(self,titre,auteur_name,date_auteur,country_auteur,etat,date=None,exemplaire=None,genre=None):
         val_date=None
@@ -95,10 +96,10 @@ class Book_Manager:
         id_book=self.livre.get_id_book(titre)
         if self.livre.book_exist_or_not(id_book):
             return self.livre.search_book(id_book)
-        auteur_id=self.id_auteur.search_auteur(auteur_name)
+        auteur_id=self.auteur.rechercher_auteur(auteur_name)
         if auteur_id is None:
             self.auteur.get_or_create_auteur(auteur_name,date_auteur,country_auteur)
-            auteur_id=self.id_auteur.search_auteur(auteur_name)
+            auteur_id=self.auteur.retourne_id_auteur(auteur_name)
         self.livre.add_book(titre,auteur_id,etat,val_date,genre,val_exemplaire)
         return True
         
@@ -189,16 +190,19 @@ class User_Manager:
         return True # On renvoie True pour confirmer que tout s'est bien passé
            
                     #Ajout d'un utilisateur
-    def ajout_utilisateur(self,nom="Inconnue",prenom="Inconnue",adresse=None,mdp=None,status="user"):
+    def ajout_utilisateur(self,nom="Inconnue",prenom="Inconnue",adresse=None,mdp=None):
+
+        mdp_hache=hashlib.sha256(mdp.encode()).hexdigest()
+
         if self.utilisateurs.user_id(nom,prenom) is not None:
             raise ValueError(f"{nom} {prenom} est deja enregistrer!!") 
-        if not all ([nom,prenom,adresse,status,mdp]):
+        if not all ([nom,prenom,adresse,mdp]):
             raise ValueError("Veuillez rempli tous les champs !!!") 
         if nom.lower() == prenom.lower() :
             raise ValueError(f"Nom doit etre different du prenom") 
-        if len(mdp)<4:
+        if len(mdp)<6:
             raise ValueError("Mot de passe trop courte veuillez ressayer !!")   
-        return self.utilisateurs.create_user(nom,prenom,adresse,status,mdp)
+        return self.utilisateurs.create_user(nom,prenom,adresse,mdp_hache)
         
                     #Recherche d'un UTilisateur
     def rechercher_utilisateur(self,name=None,surname=None):
@@ -213,7 +217,132 @@ class User_Manager:
     def display_utilisateur(self):
     
         return  self.utilisateurs.display_user()
-           
+    
+    def retourne_id_utilisateur(self,nom,prenom):
+        if not all(nom,prenom):
+            raise ValueError("Veuillez indiques le nom et le prenom de l'utilisateur")
+
+        id=self.utilisateurs.user_id(nom,prenom)
+
+        if not id:
+            raise ValueError("Utilisateur inexistant !")
+        return id
+    
+    def afficher(self,id):
+        if not id:
+            raise ValueError("Veuilles indiques l'identifiant de l'utilisateur")
+        return  self.utilisateurs.user_search(id)
+
+class Borrow_Manager:
+    def __init__(self,bd):
+           self.bd=bd
+           self.emprunt=EMPRUNT(self.bd)
+           self.utilisateur=Utilisateurs(self.bd)
+           self.book=Livre(self.bd)
+    
+    def ajout_un_emprunt(self,id_user,id_book):
+
+        if not all([id_book,id_user]):
+            raise ValueError("Veuillez indiquez les identifiants de l'utilisateur et du livre")
+        
+        date_emprunt= date.today()
+        date_retour_prevu = date_emprunt + timedelta(days=14) 
+
+        if not self.utilisateur.user_search(id_user):
+            raise ValueError("Cet Utilisateur n'existe pas")
+        
+        nbre=self.book.search_book(id_book)
+        if not nbre:
+            raise ValueError ("Ce Livre n'existe pas !")
+        
+        exemplaire=nbre[5]
+        if  exemplaire == 0:
+            raise ValueError("cet Emprunt ne peut etre effectue car le nombre d'exemplaire du livre est epuise")
+        
+        cota=self.emprunt.nbre_livre_emprunter_Par_un_utilisateur(id_user)
+
+        if cota > 2 :
+            raise ValueError("Cet utilisateur a atteint sa limite d'emprunt")
+        already=self.emprunt.livre_deja_emprunter(id_book,id_user)
+        if already:
+            raise ValueError("Attention,Vous ne pouvez pas emprunter deux fois le meme livre")
+        
+        retard=self.emprunt.a_des_retard(id_user)
+        if  retard is not None and retard>0:
+            raise ValueError("cet utilisateur a deja un emprunt en retard,et ne peut emprunter a nouveau")
+        
+        emprunt = self.emprunt.ajouter_emprunt(id_user,id_book,date_emprunt,date_retour_prevu)
+
+        if emprunt == 0:
+            return False
+        else:
+            return True
+
+    
+    def cota_emprunt(self,id_user):
+        if not id_user:
+            raise ValueError ("Veuillez indiquez l'identifiant de l'utilisateur ")
+        if not self.utilisateur.user_search(id_user):
+            raise ValueError("Cet Utilisateur n'existe pas")
+        
+        cota=self.emprunt.nbre_livre_emprunter_Par_un_utilisateur(id_user)
+        return cota
+    
+    def historique_emprunt(self,id_user):
+        if not id_user:
+          raise ValueError ("Veuillez indiquez l'identifiant de l'utilisateur ")
+        if not self.utilisateur.user_search(id_user):
+            raise ValueError("Cet Utilisateur n'existe pas")
+        historique=self.emprunt.historique_emprunts_utilisateur(id_user)
+        if not historique:
+            return False #cet utilisateur n'a jamais emprunter de livre
+
+        return historique
+    
+    def emprunt_en_cours(self,id_user):
+        if not id_user:
+          raise ValueError ("Veuillez indiquez l' identifiant de l'utilisateur ")
+        if not self.utilisateur.user_search(id_user):
+            raise ValueError("Cet Utilisateur n'existe pas")
+        current=self.emprunt.emprunts_encours(id_user)
+        if not current:
+            return False #cet utilise ne possede aucun livre actuellement
+
+        return current
+    
+    def retourner_emprunt(self,id_book,id_user):
+        if not all([id_book,id_user]):
+            raise ValueError("Veuillez indiquez les identifiants de l'utilisateur et du livre")
+        modif,retard=self.emprunt.valider_retour(id_book,id_user)
+        if not modif or modif == 0:
+            raise ValueError("Ce livre n'est pas enregistré comme emprunté par cet utilisateur.")
+        nbre_jours=int(retard) if retard is not None else 0
+
+        en_retard={"status":"retourne","retard":nbre_jours}
+        en_avance={"status":"retourne","Avance":abs(nbre_jours)}
+        a_jour={"status":"retourne","Jour-j":0}
+    
+        if nbre_jours>0:
+           return en_retard
+        elif nbre_jours <0 :
+            return en_avance
+        else :
+            return a_jour
+        
+    def afficher_les_emprunts(self):
+        emprunts=self.emprunt.afficher_emprunts()
+
+        return emprunts
+
+    
+    
+        
+
+        
+      
+        
+        
+
     
 
     
