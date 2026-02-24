@@ -209,15 +209,6 @@ class Livre:
            self.bd.close_connexion(con)
         return trouver
 
-            #Gestion de l'emprunt d'un livre
-"""def borrow_book():
-    con,curseur=open_connexion()
-    curseur.execute(
-        
-    )
-    trouver = curseur.fetchone()
-    close_connexion(con)"""""
-
 #Fonctions de Gestions des utilisateur
   
 class Utilisateurs:
@@ -302,6 +293,7 @@ class EMPRUNT:
     
     def afficher_emprunts(self):
         con,curseur=self.bd.open_connexion()
+        result=0
         try:
             with con:
                 curseur.execute(
@@ -319,6 +311,7 @@ class EMPRUNT:
 
     def nbre_livre_emprunter_Par_un_utilisateur(self,id):
         con,curseur=self.bd.open_connexion()
+        result=[]
         try:
             with con:
                 curseur.execute(
@@ -331,15 +324,16 @@ class EMPRUNT:
                 result=curseur.fetchone()
         finally:
             self.bd.close_connexion(con)
-            return result[0] 
+            return result[0] if result else 0
         
-    def emprunts_utilisateur(self,id):
+    def historique_emprunts_utilisateur(self,id):
         con,curseur=self.bd.open_connexion()
+        result=[]
         try:
             with con:
                 curseur.execute(
                     """
-                     SELECT L.titre FROM Emprunt as E
+                     SELECT E.livre_id,L.titre FROM Emprunt as E
                      INNER JOIN Livre as L ON L.id=E.livre_id
                      WHERE E.utilisateur_id = ?
             
@@ -350,8 +344,28 @@ class EMPRUNT:
             self.bd.close_connexion(con)
             return [ligne[0] for ligne in result]
     
+        
+    def emprunts_encours(self,id):
+        con,curseur=self.bd.open_connexion()
+        result=[]
+        try:
+            with con:
+                curseur.execute(
+                    """
+                     SELECT E.livre_id,L.titre FROM Emprunt as E
+                     INNER JOIN Livre as L ON L.id=E.livre_id
+                     WHERE E.utilisateur_id = ? AND  E.date_retour_effective IS NULL
+            
+                    """,(id,)
+                )
+                result=curseur.fetchall()
+        finally:
+            self.bd.close_connexion(con)
+            return [ligne[0] for ligne in result]
+    
     def ajouter_emprunt(self,id_user,id_book,current_date,borrow_return):
         con,curseur=self.bd.open_connexion()
+        result=0
         try:
             with con:
                 curseur.execute(
@@ -367,26 +381,29 @@ class EMPRUNT:
                      UPDATE Livre SET nbre_exemplaire  = nbre_exemplaire - 1 WHERE Livre.id = ? AND nbre_exemplaire > 0
                     """,(id_book,)
                 )
+                result=curseur.rowcount
                 
         finally:
             self.bd.close_connexion(con)
+            return result #si result=0 emprunt echoue | si result = 1 emprunt reussie
     
-    def livre_empruntable(self,id_book):
+    def livre_deja_emprunter(self,id_book,id_user):#cette fonction permet d'empecher un utilisateur d'emprunter un meme exempalire d'un livre 02 fois de suite
         con,curseur=self.bd.open_connexion()
+        result=None
         try:
             with con:
                 curseur.execute(
                     """
                      SELECT 1 FROM Emprunt
-                     WHERE Emprunt.livre_id=? AND Emprunt.date_retour_effective IS  NULL LIMIT 1
+                     WHERE Emprunt.livre_id=? AND utilisateur_id = ? AND Emprunt.date_retour_effective IS  NULL LIMIT 1 
             
-                    """,(id_book,)
+                    """,(id_book,id_user)
                 )
-                result=curseur.fetchone()
+                result=curseur.fetchone() # SI la fonction retourne 1 alors ce livre ne peut-etre emprunter car deja emprunter
                 
         finally:
             self.bd.close_connexion(con)
-            return result[0]
+            return result[0] if result else 0
     
     def valider_retour(self,id_book,id_user):
         con,curseur=self.bd.open_connexion()
@@ -419,12 +436,29 @@ class EMPRUNT:
                         UPDATE Livre SET   nbre_exemplaire =   nbre_exemplaire + 1 WHERE Livre.id = ?
                         """ ,(id_book,)
                     )
-
-                return nbre_modif,retard
                 
         finally:
             self.bd.close_connexion(con)
-            
+            return (nbre_modif,retard)
+    
+    def a_des_retard(self,id_user):
+        con,curseur=self.bd.open_connexion()
+        result=None
+        try:
+            with con:
+                    curseur.execute(
+                        """
+                        SELECT COUNT(*) FROM Emprunt 
+                        WHERE utilisateur_id = ? 
+                        AND date_retour_effective IS NULL 
+                        AND date_retour_prevue < date('now')
+                        """,(id_user,)
+                    )
+                    result=curseur.fetchone() # SI la fonction retourne 1 alors ce livre ne peut-etre emprunter car deja emprunter
+                
+        finally:
+            self.bd.close_connexion(con)
+            return result[0] if result else 0
 
     
 
