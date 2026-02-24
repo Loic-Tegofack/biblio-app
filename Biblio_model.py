@@ -43,11 +43,10 @@ class Database:
                 #creation de la table Utilisateur
             curseur.execute(
                     """ CREATE TABLE IF NOT EXISTS Utilisateur(
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 nom TEXT NOT NULL COLLATE NOCASE,
                                 prenom TEXT NOT NULL COLLATE NOCASE,
                                 adresse TEXT COLLATE NOCASE,
-                                status TEXT,
                                 mdp TEXT NOT NULL UNIQUE)
                     """
                 )
@@ -58,10 +57,10 @@ class Database:
                                 livre_id INTEGER,
                                 utilisateur_id INTEGER,
                                 date_emprunt TEXT NOT NULL,
-                                date_retour TEXT NOT NULL,
-                                status TEXT,
-                                FOREIGN KEY(livre_id) REFERENCES Livre(id),
-                                FOREIGN KEY(utilisateur_id) REFERENCES Utilisateur(id)
+                                date_retour_effective TEXT NOT NULL,
+                                date_retour_prevue TEXT,
+                                FOREIGN KEY(livre_id) REFERENCES Livre(id) ON DELETE RESTRICT ON  ,
+                                FOREIGN KEY(utilisateur_id) REFERENCES Utilisateur(id) ON DELETE RESTRICT
                                 )
                     """
                 )
