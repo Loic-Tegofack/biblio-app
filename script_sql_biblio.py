@@ -298,7 +298,7 @@ class EMPRUNT:
             with con:
                 curseur.execute(
                     """
-                    SELECT Utilisateur.nom,Livre.titre,Emprunt.date_emprunt, Emprunt.date_retour_effective,Emprunt.date_retour_prevue 
+                    SELECT Emprunt.livre_id,Utilisateur.nom,Livre.titre,Emprunt.date_emprunt, Emprunt.date_retour_effective,Emprunt.date_retour_prevue,Utilisateur.id 
                     FROM Emprunt INNER JOIN Utilisateur ON Utilisateur.id=Emprunt.utilisateur_id
                     INNER JOIN Livre ON Livre.id = Emprunt.livre_id WHERE Emprunt.date_retour_effective IS NULL
             
@@ -459,6 +459,50 @@ class EMPRUNT:
         finally:
             self.bd.close_connexion(con)
         return result[0] if result else 0
+    
+    def livres_en_retard(self):
+        con,curseur=self.bd.open_connexion()
+        result=None
+        try:
+            with con:
+                    curseur.execute(
+                        """
+                        SELECT E.livre_id,U.nom,U.prenom,L.titre,E.date_retour_prevue
+                        FROM Emprunt as E
+                        INNER JOIN Utilisateur as U
+                        ON U.id = E.utilisateur_id
+                        INNER JOIN Livre as L
+                        ON L.id = E.livre_id
+                        WHERE date_retour_effective IS NULL 
+                        AND date_retour_prevue < date('now')
+                        """
+                    )
+                    result=curseur.fetchall() 
+        finally:
+            self.bd.close_connexion(con)
+        return result if result else None
+    
+    def rechercher_par_utilisateur(self, id_user):
+        con, curseur = self.bd.open_connexion()
+        try:
+            with con:
+                curseur.execute(
+                    """
+                    SELECT E.id, U.nom, L.titre, E.date_emprunt, E.date_retour_effective, E.date_retour_prevue, U.id
+                    FROM Emprunt as E
+                    INNER JOIN Utilisateur as U
+                    ON U.id = E.utilisateur_id
+                    INNER JOIN Livre as L
+                    ON L.id = E.livre_id
+                    WHERE E.utilisateur_id = ? AND E.date_retour_effective IS NULL
+                    """, (id_user,)
+                )
+                return curseur.fetchall()
+        finally:
+            self.bd.close_connexion(con)
+
+
+
 
     
 
