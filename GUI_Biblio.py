@@ -1,11 +1,13 @@
 import tkinter as tk
 from tkinter import ttk,messagebox
-from controleurBiblio import Book_Manager,Author_Manager
+from controleurBiblio import Book_Manager,Author_Manager,User_Manager,Borrow_Manager
 
 root=tk.Tk()
 
-livres=Book_Manager("test01.db")
-auteur=Author_Manager("test01.db")
+livres=Book_Manager("test02.db")
+auteur=Author_Manager("test02.db")
+utilisateur=User_Manager("test02.db")
+emprunt=Borrow_Manager("test02.db")
 
 
 class GUI:
@@ -20,12 +22,18 @@ class GUI:
 
         self.onglet_livre=tk.Frame(self.notebook)
         self.onglet_auteur=tk.Frame(self.notebook)
+        self.onglet_user=tk.Frame(self.notebook)
+        self.onglet_emprunt=tk.Frame(self.notebook)
 
         self.notebook.add(self.onglet_livre,text="Gestion des Livres")
         self.notebook.add(self.onglet_auteur,text="Gestion des Auteurs")
+        self.notebook.add(self.onglet_user,text="Gestion des utilisateurs")
+        self.notebook.add(self.onglet_emprunt,text="Gestion des Emprunts")
 
         self.gui_livre=Livres_GUI(self.onglet_livre)
         self.gui_auteur=Auteur_GUI(self.onglet_auteur)
+        self.gui_user=USER_GUI(self.onglet_user)
+        self.gui_emprunt=Emprunt_GUI(self.onglet_emprunt)
 
 class Livres_GUI:
     def __init__(self,parent):
@@ -283,7 +291,6 @@ class Livres_GUI:
 
             self.cherche.delete(0,tk.END)
             
-
         tk.Button(conteneur,text="Chercher",command=afficher_recherche).pack(side="right",fill="x",padx=5,pady=5)     
         
         tk.Button(conteneur,text="Afficher Tous",command=self.afficher_livre).pack(side="right",fill="x",padx=10,pady=10) 
@@ -389,7 +396,7 @@ class Livres_GUI:
             self.modifier=tk.Button(self.details,text="Modifier",command=self.modifier_livre)
             self.modifier.grid(row=4,column=0,padx=15,pady=15)
 
-        
+  
     def modifier_livre(self):
         self.modifier.grid_remove()
         self.details.title(f"Modification ! {self.titre.get()} ")
@@ -397,7 +404,6 @@ class Livres_GUI:
         
         for champ in self.saisi:
             champ.config(state="normal") 
-
 
         self.annuler=tk.Button(self.details,text="Annuler",command=self.annuler_modifcation)
         self.annuler.grid(row=3,column=0,padx=15,pady=15)
@@ -422,7 +428,6 @@ class Livres_GUI:
              "stock":int(self.stock.get())
         }
    
-
        if self.dict == dict_actuelle:
            messagebox.showinfo("RAS","Aucune modification apporter !")
            return
@@ -439,7 +444,6 @@ class Livres_GUI:
        else:
            self.annuler_modifcation()
             
-    
     def annuler_modifcation(self):
         self.details.title("Initiale !")
         self.sauvegarde.grid_forget()
@@ -586,6 +590,293 @@ class Auteur_GUI:
                 messagebox.showerror("erreur",str(e))
 
 
+class USER_GUI:
+    def __init__(self,parent):
+        self.parent=parent
+        self.ajouter()
+        self.table_utilisateurs()
+        self.afficher_utilisateurs()
+        self.menu_contextuelle_utilisateurs()
+    
+    def ajouter_utilisateur(self):
+        self.frame=tk.Frame(self.parent)
+        self.frame.pack()
+        self.bt.config(state="disabled")
+
+        tk.Label(self.frame,text="Nom :").grid(row=0,column=0,padx=5)
+        self.nom=tk.Entry(self.frame)
+        self.nom.grid(row=0,column=1)
+
+        tk.Label(self.frame,text="Prenom :").grid(row=1,column=0,padx=5)
+        self.prenom=tk.Entry(self.frame)
+        self.prenom.grid(row=1,column=1)
+
+        tk.Label(self.frame,text="Adresse:").grid(row=2,column=0,padx=5)
+        self.adresse=tk.Entry(self.frame)
+        self.adresse.grid(row=2,column=1)
+
+        tk.Label(self.frame,text="Mot de passe : ").grid(row=3,column=0,padx=5)
+        self.mdp=tk.Entry(self.frame,show="*")
+        self.mdp.grid(row=3,column=1)
+
+        def masque_afficher():
+            if self.mdp.cget('show')=="*":
+                self.mdp.config(show='')
+                self.btn_masq_Affciher.config(text="Masquer")
+            else:
+                self.mdp.config(show='*')
+                self.btn_masq_Affciher.config(text="Afficher")
+
+        self.btn_masq_Affciher=tk.Button(self.frame,text="Afficher",command=masque_afficher)
+        self.btn_masq_Affciher.grid(row=3,column=2,padx=5)
+
+
+        def valider_utilisateur():
+            nom=self.nom.get().strip()
+            prenom=self.prenom.get().strip()
+            adresse=self.adresse.get().strip()
+            mdp=self.mdp.get().strip()
+
+            if not all([nom,prenom,adresse,mdp]):
+                messagebox.showwarning("Champs manquant !","Un ou plusieurs champs sont vides !")
+                return
+            id_utilisateur=utilisateur.rechercher_utilisateur(nom,prenom)
+            if id_utilisateur:
+                messagebox.showwarning("Redondance",f"{nom} est deja enregistre !")
+                return
+            
+            try:
+                utilisateur.ajout_utilisateur(nom,prenom,adresse,mdp)
+                messagebox.showinfo("Succes",f"l'utilisateur {nom} a ete ajoute avec succes !")
+                self.nom.delete(0,tk.END)
+                self.prenom.delete(0,tk.END)
+                self.adresse.delete(0,tk.END)
+                self.mdp.delete(0,tk.END)
+                self.afficher_utilisateurs()
+                return
+            except Exception as e:
+                print(str(e))
+        
+        tk.Button(self.frame,text="Ajouter",command=valider_utilisateur).grid(row=5, column=0, pady=12)
+        tk.Button(self.frame,text="Annuler",command=self.fermer_ajout).grid(row=5, column=1, pady=12)
+
+    def ajouter(self):
+        self.bt=tk.Button(self.parent,text="Ajouter",command=self.ajouter_utilisateur)
+        self.bt.pack()
+    def fermer_ajout(self):
+        self.bt.configure(state="active")
+        self.frame.destroy()
+    
+    def table_utilisateurs(self):
+        conteneur=tk.Frame(self.parent)
+        conteneur.pack(fill="x",expand=True,anchor="s")
+      
+        colonne=("nom","prenom","adresse")
+        self.table=ttk.Treeview(conteneur,columns=colonne,show="headings")
+        scroll=tk.Scrollbar(conteneur,orient="vertical",command=self.table.yview)
+        self.table.config(yscrollcommand=scroll.set)
+
+        self.table.heading("nom",text="Nom")
+        self.table.heading("prenom",text="Prenom")
+        self.table.heading("adresse",text="Adresse")
+
+        self.table.pack(fill="both",expand=True)
+        scroll.pack(fill="y",side="right")
+    
+    def afficher_utilisateurs(self):
+        for item in self.table.get_children():
+            self.table.delete(item)
+        utilisateurs=utilisateur.display_utilisateur()
+        for user in utilisateurs:
+            self.table.insert("","end",values=(user[1],user[2],user[3]),tags=(user[0],))
+    
+    def menu_contextuelle_utilisateurs(self):
+        self.menu=tk.Menu(self.parent,tearoff=0)
+        self.menu.add_command(label="Supprimer",command=self.supprimer_utilisateurs)
+
+        self.table.bind("<Button-3>",self.afficher_menu)
+    
+    def afficher_menu(self,event):
+        ligne=self.table.identify_row(event.y)
+        
+        if ligne:
+            self.table.selection_set(ligne)
+            self.menu.post(event.x_root,event.y_root)
+    
+    def supprimer_utilisateurs(self):
+        ligne=self.table.selection()
+
+        if not ligne:
+            return
+    
+        id=ligne[0]
+        id_utilisateur= self.table.item(id,"tags")[0]
+        infos_utilisateur=utilisateur.afficher(int(id_utilisateur))
+        question=messagebox.askyesno("suppression ...",f"Supprimer cet Utilisateur ? \n\n" 
+                            f"Nom: {infos_utilisateur[1]} \n"
+                            f"Prenom:{infos_utilisateur[2]}\n"
+                            f"Adresse:{infos_utilisateur[3]}\n\n"
+                            f"Cette action est Irreversible !")
+        if not question:
+            return
+        try:
+            utilisateur.delete_utilisateur(infos_utilisateur[1],infos_utilisateur[2])
+            messagebox.showinfo("infos",f"l'auteur {infos_utilisateur[1]} a bien ete supprimer")
+            self.afficher_utilisateurs()
+        except Exception as e:
+                messagebox.showerror("erreur",str(e))
+
+class Emprunt_GUI:
+    def __init__(self,parent):
+        self.parent=parent
+        self.table_emprunt_en_cours()
+        self.btn_afficher_emprunt()
+        self.btn_retard()
+        
+        self.rechercher_emprunt_utilisateur()
+
+    def table_emprunt_en_cours(self):
+        conteneur=tk.Frame(self.parent)
+        conteneur.pack(fill="x",expand=True,anchor="s")
+
+        colonne=("nom","titre","date_emprunt","date_retour_effective","date_retour_prevue")
+        self.table=ttk.Treeview(conteneur,columns=colonne,show="headings")
+        scroll=tk.Scrollbar(conteneur,orient="vertical",command=self.table.yview)
+        self.table.config(yscrollcommand=scroll.set)
+
+        self.table.heading("nom",text="Nom Utilisateur")
+        self.table.heading("titre",text="Titre Livre")
+        self.table.heading("date_emprunt",text="Date de l'emprunt")
+        self.table.heading("date_retour_effective",text="Date de Retour")
+        self.table.heading("date_retour_prevue",text="Date Limite de Retour")
+
+        self.table.bind("<Double-1>",self.details_emprunts)
+
+        self.table.pack(fill="both",expand=True)
+        scroll.pack(fill="y",side="right")
+    
+    def afficher_emprunt(self):
+        for item in self.table.get_children():
+            self.table.delete(item)
+        borrows=emprunt.afficher_les_emprunts()
+        for borrow in borrows:
+            self.table.insert("","end",values=(borrow[1],borrow[2],borrow[3],borrow[4],borrow[5]),tags=(borrow[0],borrow[6]))
+        
+    
+    def afficher_retard(self):
+       for item in self.table.get_children():
+           self.table.delete(item)
+       retards=emprunt.retard()
+       if retards:
+            for late in retards:
+                self.table.insert("","end",values=(late[1],late[2],late[3],late[4]),tags=(late[0],))
+       else:
+           messagebox.showwarning("attention","aucun retard enregister !")
+           return
+
+    def btn_retard(self):
+       btn_retard=tk.Button(self.parent,text="Livre rendu en Retard",command=self.afficher_retard)
+       btn_retard.pack()
+    def btn_afficher_emprunt(self):
+       btn_emprunt=tk.Button(self.parent,text="Afficher Emprunts",command=self.afficher_emprunt)
+       btn_emprunt.pack()
+    
+    def rechercher_emprunt_utilisateur(self):
+        frame=tk.Frame(self.parent)
+        frame.pack()
+
+        tk.Label(frame,text="Nom").grid(row=0,column=0,padx=5,pady=5)
+        self.nom=tk.Entry(frame)
+        self.nom.grid(row=0,column=1)
+        
+        tk.Label(frame,text="Prenom").grid(row=1,column=0,padx=5,pady=5)
+        self.prenom=tk.Entry(frame)
+        self.prenom.grid(row=1,column=1)
+
+        def afficher_recherche():
+            nom=self.nom.get().strip()
+            prenom=self.prenom.get().strip()
+
+            if not all([nom,prenom]):
+                messagebox.showwarning("donnee manquantes","Veuillez preciser le nom/prenom de l'utilisateur")
+                return
+            id_user=utilisateur.retourne_id_utilisateur(nom,prenom)
+
+            if not id_user:
+                messagebox.showwarning("attention","cet utilisateur n'est pas enregistre !")
+                return
+
+            emprunts=emprunt.rechercher_emprunt_par_utilisateur(id_user)
+
+            for i in self.table.get_children():
+                self.table.delete(i)
+            
+            if emprunts:
+                self.table.insert("","end",values=(emprunts[1],emprunts[2],emprunts[3],emprunts[4]),tags=(emprunts[0],emprunts[6]))
+            else:
+                messagebox.showinfo("Info", f"Aucun emprunt en cours pour {prenom} {nom}")
+
+            self.nom.delete(0,tk.END)
+            self.prenom.delete(0,tk.END)
+        
+        tk.Button(frame,text="Rechercher",command=afficher_recherche).grid(row=3,column=3)
+        
+    
+    #def historiques_emprunts(self):
+       # for item in self.table.get_children():
+           # self.table.delete(item)
+        #history=emprunt.historique_emprunt()
+       # for borrow in history:
+           # self.table.insert("","end",values=(borrow[1],borrow[2],borrow[3],borrow[4],borrow[5]),tags=(borrow[0],))
+    #def btn_hsitorique(self):
+      # btn_history=tk.Button(self.parent,text="Historique Emprunts",command=self.historiques_emprunts)
+      # btn_history.pack()
+
+    def details_emprunts(self,event=None,id_user=None):
+        if event:
+            selection = self.table.selection()
+            if not selection:
+                return
+            id_ligne = selection[0]
+            id_user=self.table.item(id_ligne,"tags")[1]
+        
+        if not id_user:
+            return
+        
+        infos_user=utilisateur.afficher(int(id_user))
+        quota=emprunt.cota_emprunt(int(id_user))
+
+        self.infos = tk.Toplevel(self.parent)
+        self.infos.title("Infos Utilisateur")
+        self.infos.geometry("600x500")
+        self.infos.grab_set()
+
+        tk.Label(self.infos,text="Nom").grid(row=0,column=0)
+        nom=tk.Entry(self.infos)
+        nom.insert(0,infos_user[1])
+        nom.config(state="readonly")
+        nom.grid(row=0,column=1)
+
+        tk.Label(self.infos,text="Prenom").grid(row=1,column=0)
+        prenom=tk.Entry(self.infos)
+        prenom.insert(0,infos_user[2])
+        prenom.config(state="readonly")
+        prenom.grid(row=1,column=1)
+
+        tk.Label(self.infos,text="Adresse").grid(row=2,column=0)
+        Adresse=tk.Entry(self.infos)
+        Adresse.insert(0,infos_user[3])
+        Adresse.config(state="readonly")
+        Adresse.grid(row=2,column=1)
+
+        if quota:
+            tk.Label(self.infos,text="Quota de Livre emprunte").grid(row=3,column=0,padx=5,pady=5)
+            cota=tk.Entry(self.infos)
+            cota.insert(0,quota)
+            cota.config(state="readonly")
+            cota.grid(row=3,column=1)
+
 interface=GUI(root)
+
 
 root.mainloop()
