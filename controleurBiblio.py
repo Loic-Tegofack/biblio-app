@@ -219,7 +219,7 @@ class User_Manager:
         return  self.utilisateurs.display_user()
     
     def retourne_id_utilisateur(self,nom,prenom):
-        if not all(nom,prenom):
+        if not all([nom,prenom]):
             raise ValueError("Veuillez indiques le nom et le prenom de l'utilisateur")
 
         id=self.utilisateurs.user_id(nom,prenom)
@@ -246,7 +246,7 @@ class Borrow_Manager:
             raise ValueError("Veuillez indiquez les identifiants de l'utilisateur et du livre")
         
         date_emprunt= date.today()
-        date_retour_prevu = date_emprunt + timedelta(days=14) 
+        date_retour_prevue = date_emprunt + timedelta(days=14) 
 
         if not self.utilisateur.user_search(id_user):
             raise ValueError("Cet Utilisateur n'existe pas")
@@ -271,14 +271,13 @@ class Borrow_Manager:
         if  retard is not None and retard>0:
             raise ValueError("cet utilisateur a deja un emprunt en retard,et ne peut emprunter a nouveau")
         
-        emprunt = self.emprunt.ajouter_emprunt(id_user,id_book,date_emprunt,date_retour_prevu)
+        emprunt = self.emprunt.ajouter_emprunt(id_user,id_book,date_emprunt,date_retour_prevue)
 
         if emprunt == 0:
             return False
         else:
             return True
 
-    
     def cota_emprunt(self,id_user):
         if not id_user:
             raise ValueError ("Veuillez indiquez l'identifiant de l'utilisateur ")
