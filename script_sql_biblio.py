@@ -300,7 +300,7 @@ class EMPRUNT:
                     """
                     SELECT Utilisateur.nom,Livre.titre,Emprunt.date_emprunt, Emprunt.date_retour_effective,Emprunt.date_retour_prevue 
                     FROM Emprunt INNER JOIN Utilisateur ON Utilisateur.id=Emprunt.utilisateur_id
-                    INNER JOIN Livre ON Livre.id = Emprunt.livre_id
+                    INNER JOIN Livre ON Livre.id = Emprunt.livre_id WHERE Emprunt.date_retour_effective IS NULL
             
                     """
                 )
