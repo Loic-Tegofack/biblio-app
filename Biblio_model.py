@@ -57,9 +57,9 @@ class Database:
                                 livre_id INTEGER,
                                 utilisateur_id INTEGER,
                                 date_emprunt TEXT NOT NULL,
-                                date_retour_effective TEXT NOT NULL,
+                                date_retour_effective TEXT,
                                 date_retour_prevue TEXT,
-                                FOREIGN KEY(livre_id) REFERENCES Livre(id) ON DELETE RESTRICT ON  ,
+                                FOREIGN KEY(livre_id) REFERENCES Livre(id) ON DELETE RESTRICT,
                                 FOREIGN KEY(utilisateur_id) REFERENCES Utilisateur(id) ON DELETE RESTRICT
                                 )
                     """
