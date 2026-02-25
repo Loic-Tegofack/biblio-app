@@ -307,7 +307,7 @@ class EMPRUNT:
                 result=curseur.fetchall()
         finally:
             self.bd.close_connexion(con)
-            return result
+        return result
 
     def nbre_livre_emprunter_Par_un_utilisateur(self,id):
         con,curseur=self.bd.open_connexion()
@@ -324,7 +324,7 @@ class EMPRUNT:
                 result=curseur.fetchone()
         finally:
             self.bd.close_connexion(con)
-            return result[0] if result else 0
+        return result[0] if result else 0
         
     def historique_emprunts_utilisateur(self,id):
         con,curseur=self.bd.open_connexion()
@@ -342,7 +342,7 @@ class EMPRUNT:
                 result=curseur.fetchall()
         finally:
             self.bd.close_connexion(con)
-            return [ligne[0] for ligne in result]
+        return result
     
         
     def emprunts_encours(self,id):
@@ -361,7 +361,7 @@ class EMPRUNT:
                 result=curseur.fetchall()
         finally:
             self.bd.close_connexion(con)
-            return [ligne[0] for ligne in result]
+        return result
     
     def ajouter_emprunt(self,id_user,id_book,current_date,borrow_return):
         con,curseur=self.bd.open_connexion()
@@ -385,7 +385,7 @@ class EMPRUNT:
                 
         finally:
             self.bd.close_connexion(con)
-            return result #si result=0 emprunt echoue | si result = 1 emprunt reussie
+        return result #si result=0 emprunt echoue | si result = 1 emprunt reussie
     
     def livre_deja_emprunter(self,id_book,id_user):#cette fonction permet d'empecher un utilisateur d'emprunter un meme exempalire d'un livre 02 fois de suite
         con,curseur=self.bd.open_connexion()
@@ -403,7 +403,7 @@ class EMPRUNT:
                 
         finally:
             self.bd.close_connexion(con)
-            return result[0] if result else 0
+        return result[0] if result else 0
     
     def valider_retour(self,id_book,id_user):
         con,curseur=self.bd.open_connexion()
@@ -439,7 +439,7 @@ class EMPRUNT:
                 
         finally:
             self.bd.close_connexion(con)
-            return (nbre_modif,retard)
+        return (nbre_modif,retard)
     
     def a_des_retard(self,id_user):
         con,curseur=self.bd.open_connexion()
@@ -458,7 +458,7 @@ class EMPRUNT:
                 
         finally:
             self.bd.close_connexion(con)
-            return result[0] if result else 0
+        return result[0] if result else 0
 
     
 
