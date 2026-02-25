@@ -261,7 +261,7 @@ class Borrow_Manager:
         
         cota=self.emprunt.nbre_livre_emprunter_Par_un_utilisateur(id_user)
 
-        if cota > 2 :
+        if cota >= 2 :
             raise ValueError("Cet utilisateur a atteint sa limite d'emprunt")
         already=self.emprunt.livre_deja_emprunter(id_book,id_user)
         if already:
@@ -327,12 +327,22 @@ class Borrow_Manager:
             return en_avance
         else :
             return a_jour
-        
+    
+    def retard(self):
+        late=self.emprunt.livres_en_retard()
+        return late
+    
     def afficher_les_emprunts(self):
         emprunts=self.emprunt.afficher_emprunts()
-
         return emprunts
-
+    
+    def rechercher_emprunt_par_utilisateur(self, id_user):
+        """Récupère la liste des emprunts actifs pour un utilisateur spécifique"""
+        if not id_user:
+            return []
+        # On appelle la méthode du script SQL (pense à vérifier le nom dans script_sql_biblio.py)
+        resultats = self.emprunt.emprunts_encours(id_user)
+        return resultats if resultats else []
     
     
         
