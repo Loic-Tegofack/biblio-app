@@ -22,8 +22,9 @@ class Database:
                 """ CREATE TABLE IF NOT EXISTS Auteur(
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             nom TEXT NOT NULL COLLATE NOCASE,
+                            prenom TEXT COLLATE NOCASE,
                             date_naissance INTEGER ,
-                            nationalite TEXT NOT NULL COLLATE NOCASE)
+                            nationalite TEXT  COLLATE NOCASE)
                 """
             )
                  #creation de la table Livres
