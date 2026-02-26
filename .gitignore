@@ -1,0 +1,21 @@
+# Fichiers compilés Python
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Environnements virtuels
+venv/
+.venv/
+env/
+
+# Bases de données locales
+*.db
+*.sqlite3
+*.sqlite
+
+# Fichiers de configuration et secrets
+.env
+
+# Dossiers d'IDE
+.vscode/
+.idea/
