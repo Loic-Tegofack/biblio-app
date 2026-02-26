@@ -6,14 +6,14 @@ class Auteur:
     def __init__(self,bd):
         self.bd=Database(bd)
         #Recherche  identifiant d'un auteur 
-    def search_auteur(self,nom):
+    def search_auteur(self,nom,prenom):
         con,curseur = self.bd.open_connexion()
         try:
             with con:
                 curseur.execute(
                             """
-                            SELECT id FROM Auteur WHERE nom=? 
-                            """,(nom,)
+                            SELECT id FROM Auteur WHERE nom=? AND prenom = ?
+                            """,(nom,prenom)
                         )
                 id_a=curseur.fetchone()
         finally:
@@ -21,14 +21,14 @@ class Auteur:
         return id_a[0] if id_a else None
         
         #Ajout d'un auteur
-    def new_author(self,nom_auteur,date_auteur,pays_auteur):
+    def new_author(self,nom_auteur,prenom_auteur,date_auteur,pays_auteur):
         con,curseur= self.bd.open_connexion()
         try:
            with con:
                 curseur.execute(
                     """
-                    INSERT INTO Auteur(nom,date_naissance ,nationalite ) VALUES(?,?,?)
-                    """,(nom_auteur,date_auteur,pays_auteur)
+                    INSERT INTO Auteur(nom,prenom,date_naissance ,nationalite ) VALUES(?,?,?,?)
+                    """,(nom_auteur,prenom_auteur,date_auteur,pays_auteur)
                 )
                 id_e=curseur.lastrowid
         finally:
@@ -43,7 +43,7 @@ class Auteur:
             with con:
                 curseur.execute(
                     """
-                     SELECT nom, date_naissance, nationalite  FROM Auteur WHERE id=?
+                     SELECT nom,prenom, date_naissance, nationalite  FROM Auteur WHERE id=?
                     """,(id_auteur,)
                 )
                 result=curseur.fetchone()
@@ -58,7 +58,7 @@ class Auteur:
             with con:
                 curseur.execute(
                     """
-                     SELECT id,nom, date_naissance, nationalite  FROM Auteur 
+                     SELECT id,nom,prenom,date_naissance, nationalite  FROM Auteur 
                     """
                 )
                 result=curseur.fetchall()
@@ -66,7 +66,7 @@ class Auteur:
             self.bd.close_connexion(con)
         return result
 
-    
+
     def delete_author(self,id):
         con,curseur=self.bd.open_connexion()
         try:
@@ -79,6 +79,7 @@ class Auteur:
         finally:
             self.bd.close_connexion(con)
         return True
+    
     def a_au_moins_un_livre(self,id):
         con,curseur=self.bd.open_connexion()
         nbre=None
@@ -86,15 +87,27 @@ class Auteur:
             with con:
                 curseur.execute(
                     """
-                     SELECT COUNT(Livre.id) FROM Livre INNER JOIN Auteur ON Livre.auteur_id=Auteur.id WHERE Auteur.id=?
+                     SELECT COUNT(Livre.id) FROM Livre 
+                     INNER JOIN Auteur ON Livre.auteur_id=Auteur.id
+                     WHERE Auteur.id=?
                     """,(id,)
                 )
                 nbre=curseur.fetchone()
         finally:
             self.bd.close_connexion(con)
         return nbre[0] if nbre else None
-
-
+    
+    def modifier_auteur(self,nom,prenom,date,pays):
+        con,curseur=self.bd.open_connexion()
+        try:
+            with con:
+                curseur.execute(
+                    """
+                     UPDATE Auteur set nom = ? , prenom = ? , date_naissance = ? ,nationalite = ?
+                    """,(nom,prenom,date,pays)
+                )
+        finally:
+            self.bd.close_connexion(con)
 
   
 #Fonctions de Gestions de la table Livre
@@ -154,7 +167,6 @@ class Livre:
         valeurs.append(boo_id)
         sql= f" UPDATE Livre SET {','.join(champs)} WHERE id=?"
 
-
         con,curseur=self.bd.open_connexion()
         try:
             with con:
@@ -162,21 +174,25 @@ class Livre:
         finally:
             self.bd.close_connexion(con)
     
-        #renvoie la liste complete de toute les livres stocker en BD et leurs informations
+        #renvoie la liste complete de tout les livres stocker en BD et leurs informations
     def display_book(self):  
         con,curseur=self.bd.open_connexion()
         try:
             with con:
                 curseur.execute(
                     """
-                    SELECT Livre.id,Auteur.nom,titre,date,genre,etat,nbre_exemplaire FROM Livre INNER JOIN Auteur ON Auteur.id=auteur_id
+                    SELECT Livre.id,Auteur.nom,Auteur.prenom,titre,date,genre,etat,nbre_exemplaire
+                    FROM Livre INNER JOIN Auteur 
+                    ON Auteur.id=auteur_id
                     """
                 )
                 livre = curseur.fetchall()
         finally:
             self.bd.close_connexion(con)
         return livre
-          #verifier si un livre existe et renvoir true si oui et false sinon
+    
+ #verifier si un livre existe et renvoir true si oui et false sinon
+
     def book_exist_or_not(self,idr):   
         con,curseur=self.bd.open_connexion()
         resultat=None
@@ -184,15 +200,15 @@ class Livre:
             with con:
                 curseur.execute(
                     """
-                    SELECT 1 FROM Livre WHERE id=?
+                    SELECT 1 FROM Livre WHERE id=? LIMIT 1
                     """,(idr,)
                 )
                 resultat = curseur.fetchone()
         finally:
             self.bd.close_connexion(con)
-        return resultat is not None 
+        return resultat is not None
     
-            #renvoir les informations sur un livre specifique(son ID)
+            #renvoir les informations sur un livre specifique
     def search_book(self,id_book):
         con,curseur=self.bd.open_connexion()
         trouver=None
@@ -200,8 +216,10 @@ class Livre:
             with con:
                 curseur.execute(
                     """
-                    SELECT Auteur.nom,titre,date,genre,etat, nbre_exemplaire 
-                    FROM Livre INNER JOIN Auteur ON Auteur.id=auteur_id WHERE Livre.id=?
+                    SELECT Auteur.nom,Auteur.prenom,Livre.titre,Livre.date,Livre.genre,Livre.etat, Livre.nbre_exemplaire 
+                    FROM Livre INNER JOIN Auteur
+                    ON Auteur.id=auteur_id 
+                    WHERE Livre.id=?
                     """,(id_book,)
                 )
                 trouver = curseur.fetchone()
@@ -286,6 +304,21 @@ class Utilisateurs:
                 )
         finally:
             self.bd.close_connexion(con)
+
+    def update_user(self,nom,prenom,adresse,mdp):
+        con,curseur=self.bd.open_connexion()
+        try:
+            with con:
+                curseur.execute(
+                    """
+                    UPDATE Utilisateur SET nom = ? , prenom = ? , adresse = ? , mdp = ? 
+                    """,(nom,prenom,adresse,mdp)
+                )
+        finally:
+            self.bd.close_connexion(con)
+
+
+
 
 class EMPRUNT:
     def __init__(self,bd):
@@ -467,14 +500,14 @@ class EMPRUNT:
             with con:
                     curseur.execute(
                         """
-                        SELECT E.livre_id,U.nom,U.prenom,L.titre,E.date_retour_prevue
-                        FROM Emprunt as E
-                        INNER JOIN Utilisateur as U
-                        ON U.id = E.utilisateur_id
-                        INNER JOIN Livre as L
-                        ON L.id = E.livre_id
-                        WHERE date_retour_effective IS NULL 
-                        AND date_retour_prevue < date('now')
+                        SELECT Emprunt.livre_id, Utilisateur.nom, Livre.titre, 
+                        Emprunt.date_emprunt, Emprunt.date_retour_prevue,
+                        Utilisateur.id
+                        FROM Emprunt 
+                        INNER JOIN Utilisateur ON Utilisateur.id = Emprunt.utilisateur_id
+                        INNER JOIN Livre ON Livre.id = Emprunt.livre_id
+                        WHERE Emprunt.date_retour_effective IS NULL 
+                        AND date(Emprunt.date_retour_prevue) < date('now')
                         """
                     )
                     result=curseur.fetchall() 
