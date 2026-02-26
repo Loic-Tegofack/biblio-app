@@ -9,10 +9,12 @@ class Author_Manager: #Il faudrai une fonction de modification au cas ou les don
         self.auteur=Auteur(self.bd)
         
    #Ici on verifie si l'auteur existe deja sinon on le creer et on renvoie ses informations
-    def get_or_create_auteur(self,nom,naissance,pays): 
+    def get_or_create_auteur(self,nom,prenom,naissance,pays): 
         nd=None 
         if not nom or not nom.strip():   
             raise ValueError("La saisi du nom est Obligatoire !")
+        if not prenom or not prenom.strip():   
+            raise ValueError("La saisi du prenom est Obligatoire !")
         if naissance:
               try:
                 nd=int(naissance)
@@ -20,33 +22,39 @@ class Author_Manager: #Il faudrai une fonction de modification au cas ou les don
                     raise ValueError("Entrer une valeur correct !")
               except ValueError:
                 raise ValueError("la date de naissance doit etre un nombre")
-        id_auteur = self.auteur.search_auteur(nom)
+        id_auteur = self.auteur.search_auteur(nom,prenom)
         if id_auteur is None:
-          return self.auteur.new_author(nom,nd,pays)
+          return self.auteur.new_author(nom,prenom,nd,pays)
         else:
             return self.auteur.author(id_auteur)
     
-    def retourne_id_auteur(self,nom):
+    def retourne_id_auteur(self,nom,prenom):
         if not nom  or not nom.strip():
             raise ValueError("Veuillez renseigner le nom de l'auteur")
-        author=self.auteur.search_auteur(nom)
+        if not prenom  or not prenom.strip():
+            raise ValueError("Veuillez renseigner le prenom de l'auteur")
+        author=self.auteur.search_auteur(nom,prenom)
         if author is None:
             return None
         return author
     
-    def rechercher_auteur(self,nom):
+    def rechercher_auteur(self,nom,prenom):
         if not nom  or not nom.strip():
             raise ValueError("Veuillez renseigner le nom de l'auteur")
-        id=self.auteur.search_auteur(nom)
+        if not prenom  or not prenom.strip():
+            raise ValueError("Veuillez renseigner le prenom de l'auteur")
+        id=self.auteur.search_auteur(nom,prenom)
         if id is None:
             return None
         infos=self.auteur.author(id)
         return infos if infos else None
 
-    def supprimer_auteur(self,nom):
+    def supprimer_auteur(self,nom,prenom):
         if not nom or not nom.strip():
             raise ValueError("Veuillez renseigner le nom de l'auteur")
-        id_auteur=self.auteur.search_auteur(nom)
+        if not prenom  or not prenom.strip():
+            raise ValueError("Veuillez renseigner le prenom de l'auteur")
+        id_auteur=self.auteur.search_auteur(nom,prenom)
         if not id_auteur:
             raise ValueError("Auteur Inexistant !")
         nbre_livre=self.auteur.a_au_moins_un_livre(id_auteur)
@@ -54,6 +62,17 @@ class Author_Manager: #Il faudrai une fonction de modification au cas ou les don
             raise ValueError("Cet auteur ne peut etre supprimer\n car il a ecrit au moins un livre !")
         self.auteur.delete_author(id_auteur)
         return True
+    
+    def modifier_auteur(self,nom,prenom,date=None,pays=None):
+        if not all([nom,prenom,date,pays]):
+            raise ValueError("Veuillez renseigner Tous les champs !")
+        annee=None
+        if not date.isdigit():
+            raise ValueError("l'annee de naissance doit etre un nombre")
+        annee=int(date)
+        auteur=self.auteur.modifier_auteur(nom,prenom,annee,pays)
+        return auteur
+
     
     def afficher_auteur(self):
         auteurs=self.auteur.display_author()
@@ -65,7 +84,6 @@ class Author_Manager: #Il faudrai une fonction de modification au cas ou les don
         return infos if infos else None
 
 
-
 #Fonctions de Gestion Des livres
    
 class Book_Manager:
@@ -74,7 +92,7 @@ class Book_Manager:
         self.livre=Livre(self.bd)
         self.auteur=Author_Manager(self.bd)
      #Ajout d'un Livre
-    def ajouter_livre(self,titre,auteur_name,date_auteur,country_auteur,etat,date=None,exemplaire=None,genre=None):
+    def ajouter_livre(self,titre,auteur_name,auteur_prenom,date_auteur,country_auteur,etat,date=None,exemplaire=None,genre=None):
         val_date=None
         val_exemplaire=0
         if not all([etat,titre]):
@@ -94,12 +112,15 @@ class Book_Manager:
             except ValueError:
                     raise ValueError("Le nombre d'exemplaire doit etre un nombre!!!")
         id_book=self.livre.get_id_book(titre)
+        
         if self.livre.book_exist_or_not(id_book):
             return self.livre.search_book(id_book)
-        auteur_id=self.auteur.rechercher_auteur(auteur_name)
+        
+        auteur_id = self.auteur.retourne_id_auteur(auteur_name,auteur_prenom)
+
         if auteur_id is None:
-            self.auteur.get_or_create_auteur(auteur_name,date_auteur,country_auteur)
-            auteur_id=self.auteur.retourne_id_auteur(auteur_name)
+            self.auteur.get_or_create_auteur(auteur_name,auteur_prenom,date_auteur,country_auteur)
+            auteur_id=self.auteur.retourne_id_auteur(auteur_name,auteur_prenom)
         self.livre.add_book(titre,auteur_id,etat,val_date,genre,val_exemplaire)
         return True
         
@@ -178,6 +199,7 @@ class User_Manager:
     def __init__(self,bd):
         self.bd=bd
         self.utilisateurs=Utilisateurs(self.bd)
+        self.emprunt=EMPRUNT(self.bd)
              #supprimer un utilisateur
     def delete_utilisateur(self,nom_user,prenom_user):
         if not all((nom_user,prenom_user)):
@@ -185,6 +207,9 @@ class User_Manager:
         ID_USER=self.utilisateurs.user_id(nom_user,prenom_user) # 2. On récupère l'ID une seule fois
         if ID_USER is None:
             raise ValueError("Action Impossible, Utilisateur inexistant !! |")
+        cota=self.emprunt.nbre_livre_emprunter_Par_un_utilisateur(ID_USER)
+        if cota or cota !=0:
+            raise ValueError("cet utilisasteur ne peut etre supprimer car a des emprunts actifs")
         
         self.utilisateurs.delete_user(ID_USER)
         return True # On renvoie True pour confirmer que tout s'est bien passé
@@ -203,6 +228,17 @@ class User_Manager:
         if len(mdp)<6:
             raise ValueError("Mot de passe trop courte veuillez ressayer !!")   
         return self.utilisateurs.create_user(nom,prenom,adresse,mdp_hache)
+    
+
+    def modifier_utilisateur(self,nom,prenom,adresse=None,mdp=None):
+        if not all([nom,prenom]):
+            raise ValueError("Veuillez indiquez le nom et le prenom de l'utilisateur")
+        mdp_secu=None
+        if mdp:
+            mdp_secu=hashlib.sha256(mdp.encode()).hexdigest()
+
+        return self.utilisateurs.update_user(nom,prenom,adresse,mdp_secu)
+
         
                     #Recherche d'un UTilisateur
     def rechercher_utilisateur(self,name=None,surname=None):
@@ -232,6 +268,9 @@ class User_Manager:
         if not id:
             raise ValueError("Veuilles indiques l'identifiant de l'utilisateur")
         return  self.utilisateurs.user_search(id)
+    
+
+
 
 class Borrow_Manager:
     def __init__(self,bd):
