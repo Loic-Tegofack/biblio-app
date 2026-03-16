@@ -97,14 +97,14 @@ class Auteur:
             self.bd.close_connexion(con)
         return nbre[0] if nbre else None
     
-    def modifier_auteur(self,nom,prenom,date,pays):
+    def modifier_auteur(self,nom,prenom,date,pays,id):
         con,curseur=self.bd.open_connexion()
         try:
             with con:
                 curseur.execute(
                     """
-                     UPDATE Auteur set nom = ? , prenom = ? , date_naissance = ? ,nationalite = ?
-                    """,(nom,prenom,date,pays)
+                     UPDATE Auteur set nom = ? , prenom = ? , date_naissance = ? ,nationalite = ? WHERE id = ?
+                    """,(nom,prenom,date,pays,id)
                 )
         finally:
             self.bd.close_connexion(con)
@@ -233,14 +233,14 @@ class Utilisateurs:
     def __init__(self,bd):
         self.bd=Database(bd)
               #ajout d'un utilisateur
-    def create_user(self,nom,prenom,adresse,mdp):
+    def create_user(self,nom,prenom,adresse,mdp,status):
         con,curseur=self.bd.open_connexion()
         try:
             with con:
                 curseur.execute(
                     """
-                    INSERT INTO Utilisateur (nom,prenom,adresse,mdp) VALUES (?,?,?,?)
-                    """,(nom,prenom,adresse,mdp)
+                    INSERT INTO Utilisateur (nom,prenom,adresse,mdp,status) VALUES (?,?,?,?,?)
+                    """,(nom,prenom,adresse,mdp,status)
                 )
         finally:
             self.bd.close_connexion(con)
@@ -253,7 +253,7 @@ class Utilisateurs:
             with con:
                 curseur.execute(
                     """
-                    SELECT * FROM Utilisateur 
+                    SELECT * FROM Utilisateur WHERE  status = "user"
                     """
                 )
                 result=curseur.fetchall()
@@ -305,17 +305,31 @@ class Utilisateurs:
         finally:
             self.bd.close_connexion(con)
 
-    def update_user(self,nom,prenom,adresse,mdp):
+    def update_user(self,nom,prenom,adresse,mdp,id):
         con,curseur=self.bd.open_connexion()
         try:
             with con:
                 curseur.execute(
                     """
-                    UPDATE Utilisateur SET nom = ? , prenom = ? , adresse = ? , mdp = ? 
-                    """,(nom,prenom,adresse,mdp)
+                    UPDATE Utilisateur SET nom = ? , prenom = ? , adresse = ? , mdp = ? WHERE id = ?
+                    """,(nom,prenom,adresse,mdp,id)
                 )
         finally:
             self.bd.close_connexion(con)
+    
+    def retourne_mdp_hacher_user(self,nom,prenom):
+        con,curseur=self.bd.open_connexion()
+        try:
+            with con:
+                curseur.execute(
+                    """
+                    SELECT mdp FROM Utilisateur WHERE nom = ? AND prenom = ?
+                    """,(nom,prenom)
+                )
+                result=curseur.fetchone()
+        finally:
+            self.bd.close_connexion(con)
+        return result[0] if result else None
 
 
 
@@ -366,7 +380,7 @@ class EMPRUNT:
             with con:
                 curseur.execute(
                     """
-                     SELECT E.livre_id,L.titre FROM Emprunt as E
+                     SELECT E.livre_id,L.titre,E.date_emprunt,E.date_retour_effective FROM Emprunt as E
                      INNER JOIN Livre as L ON L.id=E.livre_id
                      WHERE E.utilisateur_id = ?
             
@@ -385,7 +399,8 @@ class EMPRUNT:
             with con:
                 curseur.execute(
                     """
-                     SELECT E.livre_id,L.titre FROM Emprunt as E
+                     SELECT E.livre_id,L.titre,E.date_emprunt,E.date_retour_prevue
+                     FROM Emprunt as E
                      INNER JOIN Livre as L ON L.id=E.livre_id
                      WHERE E.utilisateur_id = ? AND  E.date_retour_effective IS NULL
             
