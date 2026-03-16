@@ -19,3 +19,6 @@ env/
 # Dossiers d'IDE
 .vscode/
 .idea/
+
+script_test
+populate_db.py
