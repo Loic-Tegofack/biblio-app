@@ -3,7 +3,20 @@ from datetime import date,timedelta
 import hashlib
 #Fonctions de Gestion Des auteurs
 
-class Author_Manager: #Il faudrai une fonction de modification au cas ou les donnees aurait ete mal saisi
+class Controlleur:
+    current_user = None
+    
+    @classmethod
+    def verifier_acces(cls,role):
+        if not cls.current_user :
+            raise ValueError("utilisateur inexistant ou non connecte")
+        niveau_acces = {"admin":2 , "user":1}
+        if niveau_acces[cls.current_user["status"]] >= niveau_acces[role] :
+            return True
+        else:
+            raise PermissionError("Acces refuser")
+
+class Author_Manager(Controlleur): #Il faudrai une fonction de modification au cas ou les donnees aurait ete mal saisi
     def __init__(self,bd):
         self.bd=bd
         self.auteur=Auteur(self.bd)
@@ -22,6 +35,9 @@ class Author_Manager: #Il faudrai une fonction de modification au cas ou les don
                     raise ValueError("Entrer une valeur correct !")
               except ValueError:
                 raise ValueError("la date de naissance doit etre un nombre")
+              
+        self.verifier_acces("admin")
+
         id_auteur = self.auteur.search_auteur(nom,prenom)
         if id_auteur is None:
           return self.auteur.new_author(nom,prenom,nd,pays)
@@ -60,21 +76,29 @@ class Author_Manager: #Il faudrai une fonction de modification au cas ou les don
         nbre_livre=self.auteur.a_au_moins_un_livre(id_auteur)
         if nbre_livre:
             raise ValueError("Cet auteur ne peut etre supprimer\n car il a ecrit au moins un livre !")
+        
+        self.verifier_acces("admin")
+
         self.auteur.delete_author(id_auteur)
         return True
     
     def modifier_auteur(self,nom,prenom,date=None,pays=None):
-        if not all([nom,prenom,date,pays]):
-            raise ValueError("Veuillez renseigner Tous les champs !")
-        annee=None
         if not date.isdigit():
             raise ValueError("l'annee de naissance doit etre un nombre")
         annee=int(date)
-        auteur=self.auteur.modifier_auteur(nom,prenom,annee,pays)
+
+        self.verifier_acces("admin")
+
+        id_auteur=self.auteur.search_auteur(nom,prenom)
+        info_auteur=self.rechercher_auteur(nom,prenom)
+        if not all([nom,prenom,date,pays]):
+            auteur=self.auteur.modifier_auteur(info_auteur[0],info_auteur[1],info_auteur[2],info_auteur[3],id_auteur)
+        
         return auteur
 
     
     def afficher_auteur(self):
+        self.verifier_acces("admin")
         auteurs=self.auteur.display_author()
         return auteurs
     def recherche_auteur_par_id(self,id):
@@ -86,7 +110,7 @@ class Author_Manager: #Il faudrai une fonction de modification au cas ou les don
 
 #Fonctions de Gestion Des livres
    
-class Book_Manager:
+class Book_Manager (Controlleur):
     def __init__(self,bd):
         self.bd=bd
         self.livre=Livre(self.bd)
@@ -112,6 +136,8 @@ class Book_Manager:
             except ValueError:
                     raise ValueError("Le nombre d'exemplaire doit etre un nombre!!!")
         id_book=self.livre.get_id_book(titre)
+
+        self.verifier_acces("admin")
         
         if self.livre.book_exist_or_not(id_book):
             return self.livre.search_book(id_book)
@@ -135,6 +161,9 @@ class Book_Manager:
         ids=self.livre.get_id_book(nom_livre)
         if ids is None:  # la on verifie d'abord que le livre existe avant de supprimer
             return None
+        
+        self.verifier_acces("admin")
+
         self.livre.delete_book(ids)
         return True
        
@@ -170,6 +199,8 @@ class Book_Manager:
         
         if not modification:
             return False
+        
+        self.verifier_acces("admin")
     
         self.livre.update_book(id_livre,modification)
         return True
@@ -195,7 +226,7 @@ class Book_Manager:
 
 #Fonctions de Gestions des utilisateur
 
-class User_Manager:
+class User_Manager(Controlleur):
     def __init__(self,bd):
         self.bd=bd
         self.utilisateurs=Utilisateurs(self.bd)
@@ -211,11 +242,13 @@ class User_Manager:
         if cota or cota !=0:
             raise ValueError("cet utilisasteur ne peut etre supprimer car a des emprunts actifs")
         
+        self.verifier_acces("admin")
+        
         self.utilisateurs.delete_user(ID_USER)
         return True # On renvoie True pour confirmer que tout s'est bien passé
            
                     #Ajout d'un utilisateur
-    def ajout_utilisateur(self,nom="Inconnue",prenom="Inconnue",adresse=None,mdp=None):
+    def ajout_utilisateur(self,nom="Inconnue",prenom="Inconnue",adresse=None,mdp=None,status=None):
 
         mdp_hache=hashlib.sha256(mdp.encode()).hexdigest()
 
@@ -226,8 +259,31 @@ class User_Manager:
         if nom.lower() == prenom.lower() :
             raise ValueError(f"Nom doit etre different du prenom") 
         if len(mdp)<6:
-            raise ValueError("Mot de passe trop courte veuillez ressayer !!")   
-        return self.utilisateurs.create_user(nom,prenom,adresse,mdp_hache)
+            raise ValueError("Mot de passe trop courte veuillez ressayer !!") 
+        if not status:
+            raise ValueError("Veuillez indiquez le role")
+        
+        self.verifier_acces("admin")
+
+        return self.utilisateurs.create_user(nom,prenom,adresse,mdp_hache,status)
+    
+    
+    def inscription_user(self,nom="Inconnue",prenom="Inconnue",adresse=None,mdp=None):
+
+        mdp_hache=hashlib.sha256(mdp.encode()).hexdigest()
+
+        status="user"
+
+        if  self.utilisateurs.user_id(nom,prenom) is not None:
+            raise ValueError(f"{nom} {prenom} est deja enregistrer!!") 
+        if not all ([nom,prenom,adresse,mdp]):
+            raise ValueError("Veuillez rempli tous les champs !!!") 
+        if nom.lower() == prenom.lower() :
+            raise ValueError(f"Nom doit etre different du prenom") 
+        if len(mdp)<6:
+            raise ValueError("Mot de passe trop courte veuillez ressayer !!") 
+        
+        return  self.utilisateurs.create_user(nom,prenom,adresse,mdp_hache,status)
     
 
     def modifier_utilisateur(self,nom,prenom,adresse=None,mdp=None):
@@ -236,8 +292,12 @@ class User_Manager:
         mdp_secu=None
         if mdp:
             mdp_secu=hashlib.sha256(mdp.encode()).hexdigest()
+        
+        id_user=self.utilisateurs.user_id(nom,prenom)
 
-        return self.utilisateurs.update_user(nom,prenom,adresse,mdp_secu)
+        self.verifier_acces("admin")
+
+        return self.utilisateurs.update_user(nom,prenom,adresse,mdp_secu,id_user)
 
         
                     #Recherche d'un UTilisateur
@@ -248,9 +308,14 @@ class User_Manager:
         ID= self.utilisateurs.user_id(name,surname)
         if ID is None:
             return None
+        
+        self.verifier_acces("admin")
+
         return  self.utilisateurs.user_search(ID)
                     #Liste de tous les utilisateur enregistrer
     def display_utilisateur(self):
+
+        self.verifier_acces("admin")
     
         return  self.utilisateurs.display_user()
     
@@ -268,11 +333,20 @@ class User_Manager:
         if not id:
             raise ValueError("Veuilles indiques l'identifiant de l'utilisateur")
         return  self.utilisateurs.user_search(id)
+    def get_mdp_hacher(self,nom,prenom):
+        if not nom or not prenom:
+            return False
+        return self.utilisateurs.retourne_mdp_hacher_user(nom,prenom)
+    
+    def utilisateur_existe(self,nom,prenom):
+        if not nom and not prenom :
+            return 
+        return self.utilisateurs.user_id(nom,prenom)
     
 
 
 
-class Borrow_Manager:
+class Borrow_Manager(Controlleur):
     def __init__(self,bd):
            self.bd=bd
            self.emprunt=EMPRUNT(self.bd)
@@ -300,7 +374,7 @@ class Borrow_Manager:
         
         cota=self.emprunt.nbre_livre_emprunter_Par_un_utilisateur(id_user)
 
-        if cota >= 2 :
+        if cota >2 :
             raise ValueError("Cet utilisateur a atteint sa limite d'emprunt")
         already=self.emprunt.livre_deja_emprunter(id_book,id_user)
         if already:
@@ -332,9 +406,7 @@ class Borrow_Manager:
         if not self.utilisateur.user_search(id_user):
             raise ValueError("Cet Utilisateur n'existe pas")
         historique=self.emprunt.historique_emprunts_utilisateur(id_user)
-        if not historique:
-            return False #cet utilisateur n'a jamais emprunter de livre
-
+        
         return historique
     
     def emprunt_en_cours(self,id_user):
@@ -343,8 +415,6 @@ class Borrow_Manager:
         if not self.utilisateur.user_search(id_user):
             raise ValueError("Cet Utilisateur n'existe pas")
         current=self.emprunt.emprunts_encours(id_user)
-        if not current:
-            return False #cet utilise ne possede aucun livre actuellement
 
         return current
     
@@ -368,6 +438,7 @@ class Borrow_Manager:
             return a_jour
     
     def retard(self):
+        self.verifier_acces("admin")
         late=self.emprunt.livres_en_retard()
         return late
     
@@ -375,13 +446,75 @@ class Borrow_Manager:
         emprunts=self.emprunt.afficher_emprunts()
         return emprunts
     
-    def rechercher_emprunt_par_utilisateur(self, id_user):
-        """Récupère la liste des emprunts actifs pour un utilisateur spécifique"""
-        if not id_user:
-            return []
-        # On appelle la méthode du script SQL (pense à vérifier le nom dans script_sql_biblio.py)
-        resultats = self.emprunt.emprunts_encours(id_user)
-        return resultats if resultats else []
+
+class Login (Controlleur):
+    
+    def __init__(self,bd):
+        self.bd=bd
+        self.utilisateur=User_Manager(self.bd)
+        self.livre=Book_Manager(self.bd)
+        self.auteur=Author_Manager(self.bd)
+        self.emprunt=Borrow_Manager(self.bd)
+    
+    def login(self,nom,prenom,mdp):
+        if not all([nom,prenom,mdp]):
+            raise ValueError("Veuillez renseigner tous vos informations")
+        id=self.utilisateur.retourne_id_utilisateur(nom,prenom)
+        if not id:
+            raise ValueError("Utilisateur non enregistrer !")
+
+        mdp_bdd=self.utilisateur.get_mdp_hacher(nom,prenom)
+        mdp_hacher = hashlib.sha256(mdp.encode()).hexdigest()
+        if mdp_bdd != mdp_hacher :
+            raise ValueError("mdp different !")
+        user=self.utilisateur.afficher(id)
+        info={
+                     "id":user[0] ,
+                     "nom":user[1],
+                     "prenom":user[2],
+                     "status":user[5]
+                 }
+        Controlleur.current_user = info
+
+        return True
+
+    def creer_compte_user(self,nom,prenom,adresse,mdp):
+
+        if not all([nom,prenom,mdp]):
+            raise ValueError("Veuillez renseigner tous vos informations")
+        id_user=self.utilisateur.utilisateur_existe(nom,prenom)
+
+        if id_user:
+            raise ValueError("cet utilisateur existe deja !")
+        self.utilisateur.inscription_user(nom,prenom,adresse,mdp)
+
+        return self.login(nom,prenom,mdp)
+    
+    def creer_compte_admin(self,nom,prenom,adresse,mdp,status="admin"):
+
+        self.verifier_acces("admin")
+
+        if not all([nom,prenom,mdp]):
+            raise ValueError("Veuillez renseigner tous vos informations")
+        id_user=self.utilisateur.utilisateur_existe(nom,prenom)
+            
+        if id_user:
+            raise ValueError("cet utilisateur existe deja !")
+        self.utilisateur.ajout_utilisateur(nom,prenom,adresse,mdp,status)
+
+        return True
+    
+   
+    
+   
+
+
+
+
+        
+            
+            
+            
     
     
         
