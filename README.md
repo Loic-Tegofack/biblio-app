@@ -1,4 +1,4 @@
-# 📚 Biblio - Application de Gestion de Bibliothèque
+# 📚 Biblio — Application de Gestion de Bibliothèque
 
 > Application moderne de gestion de bibliothèque développée en Python avec CustomTkinter et SQLite
 
@@ -15,17 +15,40 @@
 
 ### ✨ Points forts
 
-- 🎨 **Interface moderne** : Design épuré avec CustomTkinter
-- 🏗️ **Architecture MVC** : Code structuré et maintenable
-- 🔒 **Gestion sécurisée** : Mots de passe hashés (SHA-256)
+- 🎨 **Interface moderne** : Sidebar de navigation, dark/light mode, design épuré avec CustomTkinter
+- 🏗️ **Architecture MVC** : Code structuré en 4 couches (GUI → Contrôleur → SQL → Modèle)
+- 🔒 **Authentification sécurisée** : Sessions, contrôle d'accès par rôle (admin/user), mots de passe hachés SHA-256
 - 📊 **Gestion intelligente** : Validation automatique, gestion du stock, détection des retards
 - 🔍 **Recherche avancée** : Filtrage et recherche multi-critères
+
+---
+
+## 📸 Captures d'écran
+
+### Connexion
+![Login](screenshots/login.png)
+
+### Interface admin — Livres
+![Livres](screenshots/livres_admin.png)
+
+### Interface admin — Emprunts
+![Emprunts](screenshots/emprunts.png)
+
+### Interface utilisateur — Catalogue
+![Catalogue](screenshots/catalogue_user.png)
 
 ---
 
 ## 🚀 Fonctionnalités
 
 ### ✅ Fonctionnalités implémentées
+
+#### 🔐 Authentification & Accès
+- ✓ Connexion sécurisée (mots de passe hachés SHA-256)
+- ✓ Création de compte utilisateur
+- ✓ Contrôle d'accès par rôle (admin / user)
+- ✓ Déconnexion avec réinitialisation de session
+- ✓ Interface différenciée selon le rôle connecté
 
 #### 📚 Gestion des Livres
 - ✓ Ajout de livres avec gestion automatique des auteurs
@@ -43,12 +66,12 @@
 
 #### 👤 Gestion des Utilisateurs
 - ✓ Création de comptes avec validation
-- ✓ Mot de passe hashé (SHA-256)
-- ✓ Suppression sécurisée
+- ✓ Modification et suppression sécurisée
 - ✓ Limitation à 3 emprunts simultanés par utilisateur
 
 #### 📋 Gestion des Emprunts
 - ✓ Affichage des emprunts en cours
+- ✓ Historique complet par utilisateur
 - ✓ Détection automatique des retards (coloration rouge)
 - ✓ Recherche d'emprunts par utilisateur
 - ✓ Calcul automatique de la date de retour (+14 jours)
@@ -58,13 +81,11 @@
 
 ### 🚧 En cours de développement
 
-- ⏳ Menu contextuel pour valider les retours
-- ⏳ Formulaire de création d'emprunt (admin)
-- ⏳ Système de requêtes/réservations
-- ⏳ Historique des emprunts par utilisateur
-- ⏳ Statistiques et rapports
-- ⏳ Authentification (admin/lecteur)
-- ⏳ Interface lecteur avec fonctionnalités limitées
+- ⏳ Validation des retours depuis l'interface admin
+- ⏳ Formulaire de création d'emprunt côté admin
+- ⏳ Système de réservations
+- ⏳ Export des données (PDF, Excel)
+- ⏳ Statistiques et tableaux de bord analytiques
 
 ---
 
@@ -75,12 +96,13 @@
 | **Python** | 3.10+ | Langage principal |
 | **CustomTkinter** | 5.2.0 | Interface graphique moderne |
 | **SQLite3** | 3.x | Base de données locale |
-| **Hashlib** | stdlib | Hashage des mots de passe (SHA-256) |
+| **Hashlib** | stdlib | Hachage des mots de passe (SHA-256) |
 | **Datetime** | stdlib | Gestion des dates d'emprunt |
 
 ---
 
 ## 📁 Structure du projet
+
 ```
 biblio-app/
 │
@@ -88,16 +110,23 @@ biblio-app/
 ├── controleurBiblio.py        # Logique métier (Contrôleur)
 ├── script_sql_biblio.py       # Requêtes SQL (Modèle)
 ├── Biblio_model.py            # Gestion base de données
+├── populate_biblio.py         # Script de données de test
 │
-├── test02.db                  # Base de données SQLite (générée)
-├── README.md                  # Documentation
-└── .gitignore                 # Fichiers exclus de Git
+├── screenshots/               # Captures d'écran
+│   ├── login.png
+│   ├── livres_admin.png
+│   ├── emprunts.png
+│   └── catalogue_user.png
+│
+├── README.md
+└── .gitignore
 ```
 
 ---
 
 ## 📊 Schéma de la base de données
-```sql
+
+```
 ┌─────────────┐         ┌─────────────┐         ┌──────────────┐
 │   Auteur    │         │    Livre    │         │ Utilisateur  │
 ├─────────────┤         ├─────────────┤         ├──────────────┤
@@ -106,14 +135,13 @@ biblio-app/
 │ date_naiss. │         │ titre       │    │    │ prenom       │
 │ nationalite │         │ date        │    │    │ adresse      │
 └─────────────┘         │ genre       │    │    │ mdp (hash)   │
-                        │ etat        │    │    └──────────────┘
-                        │ nbre_exempl.│    │
+                        │ etat        │    │    │ status       │
+                        │ nbre_exempl.│    │    └──────────────┘
                         └──────┬──────┘    │
-                               │           │
                                │           │
                                ▼           ▼
                         ┌──────────────────────┐
-                        │      Emprunt         │
+                        │       Emprunt        │
                         ├──────────────────────┤
                         │ id                   │
                         │ livre_id (FK)        │
@@ -133,7 +161,8 @@ biblio-app/
 - Python 3.10 ou supérieur
 - pip (gestionnaire de paquets Python)
 
-### Installation des dépendances
+### Installation
+
 ```bash
 # Cloner le repository
 git clone https://github.com/Loic-Tegofack/biblio-app.git
@@ -141,111 +170,113 @@ cd biblio-app
 
 # Installer CustomTkinter
 pip install customtkinter
+
+# Peupler la base de données avec des données de test
+python populate_biblio.py
+
+# Lancer l'application
+python GUI_Biblio.py
 ```
+
+### Comptes disponibles après le populate
+
+| Rôle | Nom | Prénom | Mot de passe | Scénario de test |
+|------|-----|--------|--------------|-----------------|
+| Admin | Admin | Super | admin123 | Accès complet |
+| User | Martin | Alice | alice123 | Peut emprunter librement |
+| User | Dupont | Thomas | thomas123 | 1 emprunt en cours |
+| User | Bernard | Sophie | sophie123 | 1 emprunt en retard → bloquée |
+| User | Leblanc | Marc | marc123 | Quota de 3 atteint → bloqué |
 
 ---
 
 ## ▶️ Utilisation
 
-### Lancer l'application
-```bash
-python GUI_Biblio.py
-```
-
-### Première utilisation
-
-1. L'application crée automatiquement la base de données `test02.db`
-2. Commencez par ajouter des auteurs et des livres
-3. Créez des utilisateurs
-4. Gérez les emprunts depuis l'onglet dédié
-
 ### Navigation
 
-- **📚 Livres** : Gestion du catalogue
-- **✍️ Auteurs** : Gestion des auteurs
-- **👤 Utilisateurs** : Gestion des lecteurs
-- **📋 Emprunts** : Gestion des emprunts et retours
-
----
-
-## 🎯 Cas d'usage
+L'application utilise une **sidebar verticale** pour naviguer entre les sections.
+Le bouton **🌙 Dark / Light** en bas de la sidebar bascule le thème.
 
 ### Ajouter un livre
 
-1. Onglet **Livres** → Clic sur **"+ Nouveau livre"**
-2. Remplir les champs obligatoires (Titre*, Auteur*, État*)
+1. Section **Livres** → clic sur **"+ Nouveau livre"**
+2. Remplir les champs obligatoires (Titre *, Auteur *, État *)
 3. Si l'auteur n'existe pas, il sera créé automatiquement
 4. Valider
 
-### Rechercher un livre
-
-1. Entrer le titre dans la barre de recherche
-2. Cliquer sur **"Rechercher"**
-3. Cliquer sur **"Afficher tout"** pour revenir à la liste complète
-
 ### Consulter les emprunts en retard
 
-1. Onglet **Emprunts**
-2. Cliquer sur **"⚠️ Livres en retard"**
+1. Section **Emprunts**
+2. Cliquer sur **"⚠️ Retards"**
 3. Les emprunts en retard s'affichent avec coloration rouge
 
 ---
 
 ## 🔧 Configuration
 
-### Paramètres modifiables
-
-**Dans `controleurBiblio.py`, classe `Borrow_Manager`** :
+**Durée d'emprunt** — dans `controleurBiblio.py`, classe `Borrow_Manager` :
 ```python
-# Durée d'emprunt (ligne ~280)
-date_retour_prevue = date_emprunt + timedelta(days=14)  # Modifier ici
-
-# Limite d'emprunts par utilisateur (ligne ~295)
-if cota > 2:  # Modifier pour changer la limite (actuellement 3)
+date_retour_prevue = date_emprunt + timedelta(days=14)  # modifier ici
 ```
 
-### Base de données
-
-Pour changer le nom de la base de données, modifier dans `GUI_Biblio.py` :
+**Limite d'emprunts simultanés** — même fichier :
 ```python
-livres = Book_Manager("test02.db")  # Modifier le nom ici
+if cota > 2:  # > 2 = limite à 3, modifier selon besoin
 ```
-
----
-
-## 🐛 limitations
-
-### Limitations actuelles
-
-- Pas d'authentification (toute personne peut accéder à tout)
-- Pas de sauvegarde/restauration de base de données
-- Pas d'export de rapports (PDF, Excel)
-- Pas de notifications par email
 
 ---
 
 ## 🗺️ Roadmap
 
-### Version 1.0 (En cours)
+### Version 1.0 — En cours
+- [x] Architecture MVC en 4 couches
 - [x] CRUD Livres, Auteurs, Utilisateurs
-- [x] Gestion basique des emprunts
-- [ ] Validation des retours
-- [ ] Formulaire création d'emprunt
-- [ ] Historique des emprunts
+- [x] Authentification et gestion des rôles
+- [x] Interface admin et interface utilisateur différenciées
+- [x] Gestion complète des emprunts avec règles métier
+- [x] Historique des emprunts par utilisateur
+- [x] Dark / light mode + sidebar de navigation
+- [ ] Validation des retours depuis l'interface admin
+- [ ] Formulaire de création d'emprunt côté admin
 
-### Version 2.0 (Planifiée)
-- [ ] Authentification admin/lecteur
-- [ ] Interface lecteur (consultation catalogue, réservations)
-- [ ] Système de requêtes/réservations
+### Version 2.0 — Planifiée
+- [ ] Système de réservations
 - [ ] Prolongation d'emprunts
-- [ ] Blocage utilisateurs retardataires
+- [ ] Export PDF / Excel des emprunts
 
-### Version 3.0 (Future)
-- [ ] Statistiques avancées et rapports
-- [ ] Export PDF des emprunts
-- [ ] Notifications email automatiques
+### Version 3.0 — Future
+- [ ] Dashboard analytique (pandas + matplotlib)
+- [ ] Statistiques avancées : livres les plus empruntés, taux de retard, activité mensuelle
 - [ ] API REST pour intégration externe
-- [ ] Application mobile (Flutter/React Native)
+
+---
+
+## 🏗️ Architecture & Concepts appliqués
+
+Ce projet a été l'occasion de pratiquer en profondeur :
+
+- **Architecture MVC** — séparation stricte des responsabilités en 4 couches
+- **Principes DRY et SRP** — helpers réutilisables, une responsabilité par fonction
+- **Héritage Python** — hiérarchie `Controlleur` → managers spécialisés
+- **Gestion de session** — variable de classe partagée, réinitialisation à la déconnexion
+- **Transactions SQL** — intégrité des données lors des emprunts/retours
+- **Pattern de navigation GUI** — `pack_forget()` / `pack()` pour les vues multiples
+- **Lambda et closures** — capture de valeur dans les boucles de création de boutons
+
+---
+
+## 📝 Objectifs pédagogiques
+
+Ce projet a été développé dans un cadre d'apprentissage autonome pour :
+
+- ✅ Maîtriser l'architecture MVC en Python
+- ✅ Apprendre la gestion de bases de données SQLite
+- ✅ Créer des interfaces graphiques modernes avec CustomTkinter
+- ✅ Implémenter la validation, la gestion d'erreurs et la sécurité
+- ✅ Pratiquer Git et GitHub
+- ✅ Développer une application complète de A à Z
+
+> *Prochaine étape : analyse des données d'emprunts avec pandas et visualisation matplotlib — transformer ce projet en portfolio data analyst.*
 
 ---
 
@@ -253,32 +284,19 @@ livres = Book_Manager("test02.db")  # Modifier le nom ici
 
 **Loïc Tegofack**
 
-- GitHub: [@Loic-Tegofack](https://github.com/Loic-Tegofack)
-- Projet: [biblio-app](https://github.com/Loic-Tegofack/biblio-app)
-
----
-
-## 📝 Objectifs pédagogiques
-
-Ce projet a été développé dans un cadre d'apprentissage pour :
-
-- ✅ Maîtriser l'architecture MVC en Python
-- ✅ Apprendre la gestion de bases de données SQLite
-- ✅ Créer des interfaces graphiques modernes avec CustomTkinter
-- ✅ Implémenter la validation et la gestion d'erreurs
-- ✅ Pratiquer Git et GitHub
-- ✅ Développer une application complète de A à Z
+- GitHub : [@Loic-Tegofack](https://github.com/Loic-Tegofack)
+- Projet : [biblio-app](https://github.com/Loic-Tegofack/biblio-app)
 
 ---
 
 ## 🤝 Contributions
 
-Les contributions sont les bienvenues ! N'hésitez pas à :
+Les contributions sont les bienvenues !
 
 1. Fork le projet
 2. Créer une branche (`git checkout -b feature/amelioration`)
-3. Commit vos changements (`git commit -m 'Ajout fonctionnalité X'`)
-4. Push vers la branche (`git push origin feature/amelioration`)
+3. Commit (`git commit -m 'feat: ajout fonctionnalité X'`)
+4. Push (`git push origin feature/amelioration`)
 5. Ouvrir une Pull Request
 
 ---
@@ -289,9 +307,4 @@ Ce projet est développé à des fins pédagogiques et d'apprentissage.
 
 ---
 
-## 📸 Captures d'écran
-
-
----
-
-**⭐ Si ce projet vous a aidé, n'oubliez pas de lui donner une étoile sur GitHub !**
+**⭐ Si ce projet vous a aidé, n'hésitez pas à lui donner une étoile sur GitHub !**
