@@ -48,7 +48,9 @@ class Database:
                                 nom TEXT NOT NULL COLLATE NOCASE,
                                 prenom TEXT NOT NULL COLLATE NOCASE,
                                 adresse TEXT COLLATE NOCASE,
-                                mdp TEXT NOT NULL UNIQUE)
+                                mdp TEXT NOT NULL UNIQUE,
+                                status TEXT 
+                            )     
                     """
                 )
                 #creation de la table des emprunts
